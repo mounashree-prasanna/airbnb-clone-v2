@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traveler-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: traveler-service
+  template:
+    metadata:
+      labels:
+        app: traveler-service
+    spec:
+      containers:
+        - name: traveler-service
+          image: traveler-service:latest       # 👈 match exactly what `docker images` shows
+          imagePullPolicy: IfNotPresent         # 👈 tells K8s to use your local image
+          ports:
+            - containerPort: 7001
+          env:
+            - name: PORT
+              value: "7001"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-uri
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: traveler-secret

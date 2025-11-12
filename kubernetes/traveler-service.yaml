@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: traveler-service
+spec:
+  selector:
+    app: traveler-service
+  ports:
+    - protocol: TCP
+      port: 7001         # The port exposed by this service
+      targetPort: 7001   # The port inside the container (same as in Dockerfile)
+  type: LoadBalancer     # Exposes the service to outside the cluster

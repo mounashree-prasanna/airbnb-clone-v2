@@ -1,0 +1,16 @@
+# Ignore backend folder
+backend/
+
+# Ignore environment and build files
+.env
+*.log
+__pycache__/
+*.pyc
+node_modules/
+dist/
+build/
+
+# Ignore OS and editor files
+.DS_Store
+.vscode/
+.idea/
