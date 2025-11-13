@@ -1,0 +1,32 @@
+# -------------------
+# Node and npm files
+# -------------------
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# -------------------
+# Environment files
+# -------------------
+.env
+
+# -------------------
+# Logs and temp files
+# -------------------
+logs/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# -------------------
+# Build and coverage
+# -------------------
+dist/
+coverage/
+
+# -------------------
+# System files
+# -------------------
+.DS_Store
+Thumbs.db

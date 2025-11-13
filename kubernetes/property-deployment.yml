@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: property-deployment
+  labels:
+    app: property-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: property-service
+  template:
+    metadata:
+      labels:
+        app: property-service
+    spec:
+      containers:
+        - name: property-service
+          image: property-service:latest        # or your Docker Hub image
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7002
+          env:
+            # Load MongoDB URI from mongodb-secret
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-uri
+            # Load JWT Secret from jwt-secret
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: property-secret
+            # Static variable for the port
+            - name: PORT
+              value: "7002"
+      restartPolicy: Always
