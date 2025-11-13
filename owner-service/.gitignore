@@ -1,0 +1,24 @@
+# Node dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+
+# Logs
+logs
+*.log
+
+# Build artifacts
+dist/
+coverage/
+
+# Docker
+*.pid
+*.seed
+*.pid.lock
+
+# OS files
+.DS_Store
+Thumbs.db
