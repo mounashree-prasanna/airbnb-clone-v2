@@ -1,6 +1,7 @@
   import { useEffect, useState } from "react";
   import axios from "axios";
   import Navbar from "../components/Navbar";
+  import { API_ENDPOINTS } from "../utils/constants";
 
   export default function OwnerMyProperties() {
     const [items, setItems] = useState([]);
@@ -10,7 +11,7 @@
     const load = async () => {
       setMsg("");
       try {
-        const res = await axios.get("http://localhost:5000/api/properties/owner/me", {
+        const res = await axios.get(API_ENDPOINTS.PROPERTY.OWNER + "/me", {
           withCredentials: true,
         });
         setItems(res.data);
@@ -24,7 +25,7 @@
 
     const save = async (id, data) => {
       try {
-        await axios.put(`http://localhost:5000/api/properties/owner/${id}`, data, { withCredentials: true });
+        await axios.put(`${API_ENDPOINTS.PROPERTY.OWNER}/${id}`, data, { withCredentials: true });
         setEdit(null);
         load();
       } catch (err) {
@@ -36,7 +37,7 @@
     const remove = async (id) => {
       if (!confirm("Delete this property?")) return;
       try {
-        await axios.delete(`http://localhost:5000/api/properties/owner/${id}`, { withCredentials: true });
+        await axios.delete(`${API_ENDPOINTS.PROPERTY.OWNER}/${id}`, { withCredentials: true });
         load();
       } catch (err) {
         console.error(err);

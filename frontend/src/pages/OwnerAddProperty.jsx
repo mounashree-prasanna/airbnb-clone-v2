@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import { API_ENDPOINTS } from "../utils/constants";
 
 export default function OwnerAddProperty() {
   const [form, setForm] = useState({
@@ -24,7 +25,7 @@ export default function OwnerAddProperty() {
     e.preventDefault();
     setMsg("");
     try {
-      const res = await axios.post("http://localhost:5000/api/properties/owner", form, {
+      const res = await axios.post(API_ENDPOINTS.PROPERTY.OWNER, form, {
         withCredentials: true,
       });
       setMsg(` ${res.data.message}`);

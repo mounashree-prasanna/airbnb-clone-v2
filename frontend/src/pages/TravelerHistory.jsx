@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import { API_ENDPOINTS } from "../utils/constants";
 
 const TravelerHistory = () => {
   const [bookings, setBookings] = useState([]);
@@ -12,7 +13,7 @@ const TravelerHistory = () => {
     try {
       setCancellingId(bookingId);
       await axios.put(
-        `http://localhost:5000/api/bookings/${bookingId}/cancel`,
+        `${API_ENDPOINTS.BOOKING.BASE}/${bookingId}/cancel`,
         {},
         { withCredentials: true }
       );
@@ -35,7 +36,7 @@ const TravelerHistory = () => {
     const fetchBookings = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/bookings/traveler`,
+          API_ENDPOINTS.BOOKING.TRAVELER,
           { withCredentials: true }
         );
 

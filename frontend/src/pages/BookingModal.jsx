@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_ENDPOINTS } from "../utils/constants";
 
 export default function BookingModal({ propertyId, nextAvailableDate, onClose, price }) {
   const [formData, setFormData] = useState({
@@ -63,7 +64,7 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
       });
 
       const res = await axios.post(
-        "http://localhost:5000/api/bookings",
+        API_ENDPOINTS.BOOKING.BASE,
         {
           traveler_id,
           property_id: propertyId,

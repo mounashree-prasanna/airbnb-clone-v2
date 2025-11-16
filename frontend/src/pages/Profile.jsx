@@ -2,6 +2,7 @@ import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS, API_BASE_URL } from "../utils/constants";
 
 const Profile = () => {
   const [profile, setProfile] = useState({
@@ -25,7 +26,7 @@ const Profile = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/users/me", { withCredentials: true })
+      .get(`${API_ENDPOINTS.TRAVELER.USERS}/profile`, { withCredentials: true })
       .then((res) => {
         if (res.data) {
           setProfile({
@@ -61,7 +62,7 @@ const Profile = () => {
       });
 
       await axios.put(
-        "http://localhost:5000/api/users/update",
+        `${API_ENDPOINTS.TRAVELER.USERS}/profile`,
         formData,
         { 
           withCredentials: true,
@@ -93,7 +94,7 @@ const Profile = () => {
               <img
                 src={
                   typeof profile.profilePic === "string"
-                    ? `http://localhost:5000${profile.profilePic}`
+                    ? `${API_BASE_URL}${profile.profilePic}`
                     : URL.createObjectURL(profile.profilePic)
                 }
                 alt="Profile"

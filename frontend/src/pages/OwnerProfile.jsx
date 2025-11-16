@@ -2,6 +2,7 @@ import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS, API_BASE_URL } from "../utils/constants";
 
 const OwnerProfile = () => {
   const [profile, setProfile] = useState({
@@ -18,7 +19,7 @@ const OwnerProfile = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/users/me", { withCredentials: true })
+      .get(API_ENDPOINTS.OWNER.PROFILE, { withCredentials: true })
       .then((res) => {
         if (res.data) {
           const { name, email, location, phone, profile_image } = res.data;
@@ -59,13 +60,13 @@ const OwnerProfile = () => {
         fd.append("phone", profile.phone);
         fd.append("profile_image", profile.profilePic);
 
-        await axios.put("http://localhost:5000/api/users/update", fd, {
+        await axios.put(API_ENDPOINTS.OWNER.PROFILE, fd, {
           withCredentials: true,
           headers: { "Content-Type": "multipart/form-data" },
         });
       } else {
         await axios.put(
-          "http://localhost:5000/api/users/update",
+          API_ENDPOINTS.OWNER.PROFILE,
           {
             name: profile.name,
             email: profile.email,
@@ -98,7 +99,7 @@ const OwnerProfile = () => {
           <div className="flex flex-col items-center">
             {preview ? (
               <img
-                src={preview.startsWith('http') ? preview : `http://localhost:5000${preview}`}
+                src={preview.startsWith('http') ? preview : `${API_BASE_URL}${preview}`}
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover mb-2"
               />

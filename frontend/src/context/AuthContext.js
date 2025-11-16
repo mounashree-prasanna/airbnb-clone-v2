@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import AuthService from '../services/AuthService';
 
 const AuthContext = createContext();
 
@@ -22,9 +22,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkSession = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/auth/check-session", { 
-        withCredentials: true 
-      });
+      const res = await AuthService.checkSession();
       setIsLoggedIn(res.data.isLoggedIn);
       const userRole = res.data.role || localStorage.getItem("role");
       setRole(userRole);
@@ -46,9 +44,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post("http://localhost:5000/api/auth/logout", {}, { 
-        withCredentials: true 
-      });
+      await AuthService.logout();
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {

@@ -1,0 +1,60 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: airbnb-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # Rewrite paths to remove the prefix and forward to backend services
+    # Example: /traveler/auth/login -> /auth/login (strips /traveler prefix)
+    # Using regex capture groups: $1 captures the prefix, $2 captures the rest
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # Enable use-regex for regex path matching
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: airbnb.local
+      http:
+        paths:
+          # Traveler service
+          # Request: /traveler/auth/login -> Backend receives: /auth/login
+          # Request: /traveler/profile -> Backend receives: /profile
+          - path: /traveler(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: traveler-service
+                port:
+                  number: 7001
+
+          # Property service
+          # Request: /property/api/property -> Backend receives: /api/property
+          # Request: /property/api/property/search -> Backend receives: /api/property/search
+          - path: /property(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: property-service
+                port:
+                  number: 7002
+
+          # Owner service
+          # Request: /owner/api/owner/profile -> Backend receives: /api/owner/profile
+          - path: /owner(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: owner-service
+                port:
+                  number: 7003
+
+          # Booking service
+          # Request: /booking/booking -> Backend receives: /booking
+          # Request: /booking/booking/traveler -> Backend receives: /booking/traveler
+          - path: /booking(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: booking-service
+                port:
+                  number: 7004

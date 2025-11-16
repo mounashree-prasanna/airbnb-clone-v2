@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
+import { API_ENDPOINTS } from "../utils/constants";
 
 export default function SearchResults() {
   const [properties, setProperties] = useState([]);
@@ -33,7 +34,7 @@ export default function SearchResults() {
           requestParams.endDate = endDate;
         }
         
-        const res = await axios.get("http://localhost:5000/api/properties/search", {
+        const res = await axios.get(API_ENDPOINTS.PROPERTY.SEARCH, {
           params: requestParams,
           withCredentials: true,
         });

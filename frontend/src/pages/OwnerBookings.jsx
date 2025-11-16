@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import { API_ENDPOINTS } from "../utils/constants";
 
 export default function OwnerBookings() {
   const [bookings, setBookings] = useState([]);
@@ -10,7 +11,7 @@ export default function OwnerBookings() {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/bookings/owner", {
+        const res = await axios.get(API_ENDPOINTS.BOOKING.OWNER, {
           withCredentials: true,
         });
         setBookings(res.data);
@@ -27,7 +28,7 @@ export default function OwnerBookings() {
   const handleAction = async (id, action) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/bookings/${id}/${action}`,
+        `${API_ENDPOINTS.BOOKING.BASE}/${id}/${action}`,
         {},
         { withCredentials: true }
       );

@@ -10,4 +10,3 @@ spec:
       port: 7004          # service port
       targetPort: 7004    # container port
   type: ClusterIP         # internal communication (no external exposure)
-f

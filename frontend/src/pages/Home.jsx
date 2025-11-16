@@ -5,6 +5,7 @@ import PropertyCard from "../components/PropertyCard";
 import { AIConciergeButton, AIConciergePanel } from "../components/AIConcierge";
 import ConciergeResults from "../components/ConciergeResults";
 import AIConciergeService from "../services/AIConciergeService";
+import { API_ENDPOINTS } from "../utils/constants";
 
 const Home = () => {
   const [properties, setProperties] = useState([]);
@@ -15,7 +16,7 @@ const Home = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/properties")
+      .get(API_ENDPOINTS.PROPERTY.BASE)
       .then((res) => {
         if (res.data.length > 0) {
           setProperties(res.data);

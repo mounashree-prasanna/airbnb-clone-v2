@@ -1,13 +1,18 @@
 import axios from "axios";
-
-const AUTH_API_URL = "http://localhost:5000/api/auth";
+import { API_BASE_URL } from "../utils/constants";
 
 axios.defaults.withCredentials = true;
 
 class AuthService {
   async login(role, payload) {
+    // Dynamically pick endpoint based on role
+    const base =
+      role === "owner"
+        ? `${API_BASE_URL}/owner/auth`
+        : `${API_BASE_URL}/traveler/auth`;
+
     return axios.post(
-      `${AUTH_API_URL}/login`,
+      `${base}/login`,
       { ...payload, role },
       {
         headers: { "Content-Type": "application/json" },
@@ -17,8 +22,13 @@ class AuthService {
   }
 
   async signup(role, payload) {
+    const base =
+      role === "owner"
+        ? `${API_BASE_URL}/owner/auth`
+        : `${API_BASE_URL}/traveler/auth`;
+
     return axios.post(
-      `${AUTH_API_URL}/signup`,
+      `${base}/signup`,
       { ...payload, role },
       {
         headers: { "Content-Type": "application/json" },
@@ -27,12 +37,20 @@ class AuthService {
     );
   }
 
-  async logout() {
-    return axios.post(`${AUTH_API_URL}/logout`, {}, { withCredentials: true });
+  async logout(role) {
+    const base =
+      role === "owner"
+        ? `${API_BASE_URL}/owner/auth`
+        : `${API_BASE_URL}/traveler/auth`;
+    return axios.post(`${base}/logout`, {}, { withCredentials: true });
   }
 
-  async checkSession() {
-    return axios.get(`${AUTH_API_URL}/check-session`, { withCredentials: true });
+  async checkSession(role) {
+    const base =
+      role === "owner"
+        ? `${API_BASE_URL}/owner/auth`
+        : `${API_BASE_URL}/traveler/auth`;
+    return axios.get(`${base}/check-session`, { withCredentials: true });
   }
 }
 
