@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_ENDPOINTS } from "../utils/constants";
 
 const PropertyCard = ({ id, title, location, price, photo_url }) => {
   const [isFavourite, setIsFavourite] = useState(false);
@@ -9,7 +10,7 @@ const PropertyCard = ({ id, title, location, price, photo_url }) => {
   useEffect(() => {
     const fetchFavourites = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/favourites/my-favourites", {
+        const res = await axios.get(API_ENDPOINTS.TRAVELER.FAVOURITES + "/my-favourites", {
           withCredentials: true,
         });
         const favourites = res.data || [];
@@ -25,13 +26,13 @@ const PropertyCard = ({ id, title, location, price, photo_url }) => {
   const toggleFavourite = async () => {
     try {
       if (isFavourite) {
-        await axios.delete(`http://localhost:5000/api/favourites/remove/${id}`, {
+        await axios.delete(`${API_ENDPOINTS.TRAVELER.FAVOURITES}/remove/${id}`, {
           withCredentials: true,
         });
         setIsFavourite(false);
       } else {
         await axios.post(
-          "http://localhost:5000/api/favourites/add",
+          API_ENDPOINTS.TRAVELER.FAVOURITES + "/add",
           { propertyId: id },
           { withCredentials: true }
         );

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import BookingModal from "./BookingModal";
+import { API_ENDPOINTS } from "../utils/constants";
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -12,7 +13,7 @@ const PropertyDetail = () => {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:5000/api/properties/${id}`, { withCredentials: true })
+      .get(`${API_ENDPOINTS.PROPERTY.BASE}/${id}`, { withCredentials: true })
       .then((res) => {
         if (res.data) setProperty(res.data);
         else setError("Property not found.");

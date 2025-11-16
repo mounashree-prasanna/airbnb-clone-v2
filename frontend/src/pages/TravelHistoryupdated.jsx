@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import { API_ENDPOINTS } from "../utils/constants";
 
 const TravelerHistory = () => {
   const [bookings, setBookings] = useState([]);
@@ -12,7 +13,7 @@ const TravelerHistory = () => {
       try {
         // ✅ Let the backend handle authentication and get traveler ID from session
         const res = await axios.get(
-          `http://localhost:5000/api/bookings/traveler`,
+          API_ENDPOINTS.BOOKING.TRAVELER,
           { withCredentials: true }
         );
 

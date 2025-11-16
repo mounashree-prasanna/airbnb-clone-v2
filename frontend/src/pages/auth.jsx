@@ -1,4 +1,7 @@
 import { useState } from "react";
+import AuthService from "../services/AuthService";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const COUNTRIES = [
   { code: "US", name: "United States" },
@@ -13,7 +16,11 @@ const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 
 export default function AuthPage() {
   const [isSignup, setIsSignup] = useState(true);      
-  const [role, setRole] = useState("traveler");        
+  const [role, setRole] = useState("traveler");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { login } = useAuth();        
 
   const [formData, setFormData] = useState({
     email: "",
@@ -32,45 +39,65 @@ export default function AuthPage() {
     setFormData((s) => ({ ...s, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    if (isSignup) {
-      const payload =
-        role === "owner"
-          ? {
-              role,
-              name: formData.name,
-              email: formData.email,
-              password: formData.password,
-              phone: formData.phone,
-              city: formData.city,
-              country: formData.country,
-              language: formData.language,
-              gender: formData.gender,
-              location: formData.location, 
-            }
-          : {
-              role,
-              name: formData.name,
-              email: formData.email,
-              password: formData.password,
-              phone: formData.phone,
-              city: formData.city,
-              country: formData.country,
-              language: formData.language,
-              gender: formData.gender,
-            };
+    try {
+      if (isSignup) {
+        const payload =
+          role === "owner"
+            ? {
+                role,
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+                phone: formData.phone,
+                city: formData.city,
+                country: formData.country,
+                language: formData.language,
+                gender: formData.gender,
+                location: formData.location, 
+              }
+            : {
+                role,
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+                phone: formData.phone,
+                city: formData.city,
+                country: formData.country,
+                language: formData.language,
+                gender: formData.gender,
+              };
 
-      console.log("SIGNUP payload →", payload);
-    } else {
-      const payload = {
-        role,
-        email: formData.email,
-        password: formData.password,
-      };
+        const res = await AuthService.signup(role, payload);
+        console.log("Signup success:", res.data);
+        navigate("/login");
+      } else {
+        const payload = {
+          email: formData.email,
+          password: formData.password,
+        };
 
-      console.log("LOGIN payload →", payload);
+        const res = await AuthService.login(role, payload);
+        const userRole = res.data.role || role;
+        localStorage.setItem("role", userRole);
+        localStorage.setItem("user_id", res.data.user?.id || "");
+        login(userRole);
+
+        if (userRole === "owner") {
+          navigate("/owner/dashboard");
+        } else {
+          navigate("/home");
+        }
+      }
+    } catch (err) {
+      console.error("Auth error:", err.response?.data || err.message);
+      setError(err.response?.data?.message || (isSignup ? "Signup failed. Try again." : "Login failed. Please try again."));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -223,11 +250,22 @@ export default function AuthPage() {
             </>
           )}
 
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+            disabled={loading}
+            className={`w-full py-3 rounded-lg text-white transition ${
+              loading
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
-            {isSignup ? "Sign Up" : "Login"}
+            {loading ? (isSignup ? "Signing up..." : "Logging in...") : (isSignup ? "Sign Up" : "Login")}
           </button>
         </form>
 

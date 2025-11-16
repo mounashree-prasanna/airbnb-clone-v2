@@ -12,13 +12,25 @@ const PORT = process.env.PORT || 7003;
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://airbnb.local",
+      /^http:\/\/.*\.airbnb\.local$/,
+      process.env.FRONTEND_URL || "",
+    ].filter(Boolean),
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Database
 connectDB();
 
 // Routes
-app.use("/api/owner", ownerRoutes);
+app.use("/auth", ownerRoutes);
 
 // Health check (for Docker/Kubernetes readiness)
 app.get("/health", (req, res) => {

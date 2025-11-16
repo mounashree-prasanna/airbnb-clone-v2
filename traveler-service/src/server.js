@@ -2,31 +2,43 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
-
-// Route imports (make sure filenames match exactly)
 import travelerAuthRoute from "./routes/travelerAuthRoute.js";
 import travelerRoute from "./routes/travelerRoute.js";
 
 dotenv.config();
 const app = express();
 
-// Middlewares
-app.use(cors());
+// ✅ CORS middleware — allow frontend and ingress
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://airbnb.local",
+      /^http:\/\/.*\.airbnb\.local$/,
+      process.env.FRONTEND_URL || "",
+    ].filter(Boolean),
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// ✅ Middleware for parsing JSON
 app.use(express.json());
 
-// Connect to MongoDB Atlas
+// ✅ Connect MongoDB
 connectDB();
 
-// Base route for health check
+// ✅ Health check route
 app.get("/", (req, res) => {
   res.send("🚀 Traveler Service is running and connected to MongoDB");
 });
 
-// Traveler routes
-app.use("/traveler/auth", travelerAuthRoute);
-app.use("/traveler", travelerRoute);
+// ✅ Traveler routes
+app.use("/auth", travelerAuthRoute);
+app.use("/", travelerRoute);
 
-// Start server
+// ✅ Start server
 const PORT = process.env.PORT || 7001;
 app.listen(PORT, () => {
   console.log(`✅ Traveler Service running on port ${PORT}`);

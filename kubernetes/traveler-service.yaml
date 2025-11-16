@@ -9,4 +9,4 @@ spec:
     - protocol: TCP
       port: 7001         # The port exposed by this service
       targetPort: 7001   # The port inside the container (same as in Dockerfile)
-  type: LoadBalancer     # Exposes the service to outside the cluster
+  type: ClusterIP     # Exposes the service to outside the cluster

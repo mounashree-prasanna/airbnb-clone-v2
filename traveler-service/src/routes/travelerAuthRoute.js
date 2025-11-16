@@ -1,5 +1,5 @@
 import express from "express";
-import { signupTraveler, loginTraveler, logoutTraveler } 
+import { signupTraveler, loginTraveler, logoutTraveler, checkSession } 
   from "../controllers/travelercontrollerAuth.js";
 
 const router = express.Router();
@@ -7,5 +7,6 @@ const router = express.Router();
 router.post("/signup", signupTraveler);
 router.post("/login", loginTraveler);
 router.get("/logout", logoutTraveler);
+router.get("/check-session", checkSession);
 
 export default router;

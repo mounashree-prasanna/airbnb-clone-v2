@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_ENDPOINTS } from "../utils/constants";
 
 const Favourites = () => {
   const [favourites, setFavourites] = useState([]);
@@ -10,7 +11,7 @@ const Favourites = () => {
     const fetchFavourites = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:5000/api/favourites/my-favourites",
+          API_ENDPOINTS.TRAVELER.FAVOURITES + "/my-favourites",
           { withCredentials: true }
         );
         setFavourites(res.data || []);
