@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import travelerAuthRoute from "./routes/travelerAuthRoute.js";
 import travelerRoute from "./routes/travelerRoute.js";
+import favouriteRoutes from "./routes/favouriteRoutes.js";
+import { protect } from "./middlewares/authMiddleware.js";
+
 
 dotenv.config();
 const app = express();
@@ -37,6 +40,7 @@ app.get("/", (req, res) => {
 // ✅ Traveler routes
 app.use("/auth", travelerAuthRoute);
 app.use("/", travelerRoute);
+app.use("/favourites", protect(["traveler"]), favouriteRoutes);
 
 // ✅ Start server
 const PORT = process.env.PORT || 7001;
