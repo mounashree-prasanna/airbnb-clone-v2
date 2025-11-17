@@ -11,7 +11,8 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,11 +21,15 @@ export default function Login() {
 
     try {
       const res = await AuthService.login(role, formData);
+      const userRole = res.data.traveler?.role || res.data.role || role;
 
-      const userRole = res.data.role || role;
+      // ✅ Store JWT token for all future requests
+      localStorage.setItem("token", res.data.token);
 
+      // ✅ Store role and user info
       localStorage.setItem("role", userRole);
-      localStorage.setItem("user_id", res.data.user?.id || "");
+      localStorage.setItem("user_id", res.data.traveler?.id || "");
+
       login(userRole);
 
       if (userRole === "owner") {
@@ -40,6 +45,7 @@ export default function Login() {
     }
   };
 
+  // ✅ Only one return block
   return (
     <div className="min-h-screen flex items-center justify-center bg-rose-500 p-6">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
@@ -104,7 +110,10 @@ export default function Login() {
 
         <p className="text-center mt-6 text-gray-600">
           Don’t have an account?{" "}
-          <a href="/signup" className="text-rose-500 font-semibold hover:underline">
+          <a
+            href="/signup"
+            className="text-rose-500 font-semibold hover:underline"
+          >
             Sign up here
           </a>
         </p>

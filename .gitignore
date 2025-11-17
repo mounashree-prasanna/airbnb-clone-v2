@@ -2,7 +2,7 @@
 backend/
 
 # Ignore environment and build files
-.env
+# .env
 *.log
 __pycache__/
 *.pyc

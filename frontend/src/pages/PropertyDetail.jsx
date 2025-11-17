@@ -86,7 +86,9 @@ const PropertyDetail = () => {
           <p className="col-span-2">
             <strong>Available:</strong> {property.next_available_date 
               ? formatDate(property.next_available_date) + " onwards" 
-              : formatDate(property.available_from) + " → " + formatDate(property.available_to)}
+              : formatDate(property.available_from || property.availableFrom) + 
+     " → " + formatDate(property.available_to || property.availableTo)
+}
           </p>
         </div>
 
@@ -94,7 +96,10 @@ const PropertyDetail = () => {
           <div className="mt-4">
             <strong>Amenities:</strong>
             <div className="flex flex-wrap gap-2 mt-2">
-              {property.amenities.split(",").map((a, idx) => (
+              {(Array.isArray(property.amenities)
+                ? property.amenities
+                : property.amenities.split(",")
+              ).map((a, idx) => (
                 <span
                   key={idx}
                   className="bg-gray-200 text-gray-700 text-sm px-3 py-1 rounded-full"
@@ -105,6 +110,7 @@ const PropertyDetail = () => {
             </div>
           </div>
         )}
+
 
         <button
           onClick={() => setShowModal(true)}

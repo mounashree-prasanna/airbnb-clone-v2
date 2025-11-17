@@ -33,14 +33,20 @@ exports.searchProperties = async (req, res) => {
 // @desc Get single property by ID
 exports.getProperty = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.id);
+    const property = await Property.findById(req.params.id).lean();
     if (!property) return res.status(404).json({ message: "Property not found" });
+
+    // Normalize field names for frontend
+    property.id = property._id;
+    delete property._id;
+
     res.json(property);
   } catch (err) {
     console.error("getProperty error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // @desc Get properties for logged-in owner
 exports.getMyProperties = async (req, res) => {

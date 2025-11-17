@@ -2,6 +2,7 @@ import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { API_ENDPOINTS } from "../utils/constants";
+import axiosInstance from "../utils/axiosInstance";
 
 const Favourites = () => {
   const [favourites, setFavourites] = useState([]);
@@ -10,9 +11,8 @@ const Favourites = () => {
   useEffect(() => {
     const fetchFavourites = async () => {
       try {
-        const res = await axios.get(
-          API_ENDPOINTS.TRAVELER.FAVOURITES + "/my-favourites",
-          { withCredentials: true }
+        const res = await axiosInstance.get(
+          API_ENDPOINTS.TRAVELER.FAVOURITES + "/my-favourites"
         );
         setFavourites(res.data || []);
       } catch (err) {
@@ -36,7 +36,7 @@ const Favourites = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {favourites.map((fav) => (
               <div
-                key={fav.id}
+                key={fav.id || fav._id}
                 className="border rounded-lg shadow hover:shadow-lg transition duration-200 bg-white"
               >
                 <img

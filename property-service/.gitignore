@@ -5,10 +5,10 @@ node_modules/
 npm-debug.log*
 yarn-error.log*
 
-# -------------------
-# Environment files
-# -------------------
-.env
+# # -------------------
+# # Environment files
+# # -------------------
+# .env
 
 # -------------------
 # Logs and temp files
