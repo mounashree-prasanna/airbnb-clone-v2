@@ -10,6 +10,8 @@ import { API_ENDPOINTS } from "../utils/constants";
 const Home = () => {
   const [properties, setProperties] = useState([]);
   const [error, setError] = useState("");
+  // const [favourites, setFavourites] = useState([]);
+  
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeResults, setConciergeResults] = useState(null);
   const [conciergeError, setConciergeError] = useState("");
@@ -62,7 +64,7 @@ const Home = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {properties.map((prop) => (
-              <PropertyCard key={prop.id} {...prop} />
+              <PropertyCard key={prop._id} {...prop} />
             ))}
           </div>
         )}
