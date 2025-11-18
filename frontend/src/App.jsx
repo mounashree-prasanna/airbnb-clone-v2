@@ -1,5 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { Provider } from "react-redux";
+import { store } from "./store";
+import { useAppSelector } from "./store/hooks";
+import { useEffect } from "react";
+import { checkSession } from "./store/slices/authSlice";
+import { useAppDispatch } from "./store/hooks";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -17,7 +22,20 @@ import TravelerHistory from "./pages/TravelerHistory";
 import SearchResults from "./pages/SearchResults";
 
 function AppRoutes() {
-  const { isLoggedIn, role, loading } = useAuth();
+  const dispatch = useAppDispatch();
+  const { isLoggedIn, role, loading } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    // Only check session once on mount
+    const storedRole = localStorage.getItem("role");
+    if (storedRole) {
+      dispatch(checkSession(storedRole));
+    } else {
+      // Set loading to false if no role found
+      dispatch(checkSession(null));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run once on mount
 
   if (loading)
     return (
@@ -74,11 +92,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
+    <Provider store={store}>
       <Router>
         <AppRoutes />
       </Router>
-    </AuthProvider>
+    </Provider>
   );
 }
 

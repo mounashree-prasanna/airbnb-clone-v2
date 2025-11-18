@@ -1,56 +1,20 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { fetchTravelerBookings, cancelBooking, clearBookingError } from "../store/slices/bookingSlice";
 import Navbar from "../components/Navbar";
-import { API_ENDPOINTS } from "../utils/constants";
 
 const TravelerHistory = () => {
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [cancellingId, setCancellingId] = useState(null);
-
-  const handleCancel = async (bookingId) => {
-    try {
-      setCancellingId(bookingId);
-      await axios.put(
-        `${API_ENDPOINTS.BOOKING.BASE}/${bookingId}/cancel`,
-        {},
-        { withCredentials: true }
-      );
-      
-      setBookings(bookings.map(booking => 
-        booking.id === bookingId 
-          ? { ...booking, status: 'CANCELLED' }
-          : booking
-      ));
-      
-    } catch (err) {
-      console.error("Error cancelling booking:", err);
-      setError("Failed to cancel booking. Please try again.");
-    } finally {
-      setCancellingId(null);
-    }
-  };
+  const dispatch = useAppDispatch();
+  const { bookings, loading, error, cancelling } = useAppSelector((state) => state.booking);
 
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        const res = await axios.get(
-          API_ENDPOINTS.BOOKING.TRAVELER,
-          { withCredentials: true }
-        );
+    dispatch(clearBookingError());
+    dispatch(fetchTravelerBookings());
+  }, [dispatch]);
 
-        setBookings(res.data);
-      } catch (err) {
-        console.error("Error fetching bookings:", err);
-        setError("Could not load your booking history.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBookings();
-  }, []);
+  const handleCancel = async (bookingId) => {
+    await dispatch(cancelBooking(bookingId));
+  };
 
   return (
     <div>
@@ -109,10 +73,10 @@ const TravelerHistory = () => {
                     {booking.status !== "CANCELLED" && booking.status !== "ACCEPTED" && (
                       <button
                         onClick={() => handleCancel(booking.id)}
-                        disabled={cancellingId === booking.id}
+                        disabled={cancelling === booking.id}
                         className="w-full mt-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white py-2 px-4 rounded-md text-sm transition-colors duration-200"
                       >
-                        {cancellingId === booking.id ? "Cancelling..." : "Cancel Booking"}
+                        {cancelling === booking.id ? "Cancelling..." : "Cancel Booking"}
                       </button>
                     )}
                 </div>

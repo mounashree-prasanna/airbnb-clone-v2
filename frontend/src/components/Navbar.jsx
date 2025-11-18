@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaGlobe, FaBars, FaHeart, FaSearch } from "react-icons/fa";
-import { useAuth } from "../context/AuthContext";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { logoutUser } from "../store/slices/authSlice";
 
 export default function DashboardNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn, role, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const { isLoggedIn, role } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -21,7 +23,7 @@ export default function DashboardNavbar() {
   }, []);
 
   const handleLogout = async () => {
-    await logout();
+    await dispatch(logoutUser(role));
     navigate("/login");
   };
 
