@@ -1,14 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import axios from "axios";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { searchProperties } from "../store/slices/propertySlice";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
-import { API_ENDPOINTS } from "../utils/constants";
 
 export default function SearchResults() {
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const dispatch = useAppDispatch();
+  const { searchResults, searchLoading, searchError } = useAppSelector((state) => state.property);
 
   const location = useLocation();
 
@@ -20,41 +19,18 @@ export default function SearchResults() {
   const [startDate, endDate] = datesParam ? datesParam.split("|") : ["", ""];
 
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (!searchLocation) {
-          setError("Please enter a location to search.");
-          setLoading(false);
-          return;
-        }
+    if (!searchLocation) {
+      return;
+    }
 
-        const requestParams = { location: searchLocation, guests };
-        if (startDate && endDate) {
-          requestParams.startDate = startDate;
-          requestParams.endDate = endDate;
-        }
-        
-        const res = await axios.get(API_ENDPOINTS.PROPERTY.SEARCH, {
-          params: requestParams,
-          withCredentials: true,
-        });
-
-        setProperties(res.data);
-        setError("");
-      } catch (err) {
-        console.error("Search failed:", err);
-        if (err.response?.status === 404) {
-          setError("No properties found for this location.");
-        } else {
-          setError("Server error. Please try again later.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProperties();
-  }, [searchLocation, guests, startDate, endDate]);
+    const requestParams = { location: searchLocation, guests };
+    if (startDate && endDate) {
+      requestParams.startDate = startDate;
+      requestParams.endDate = endDate;
+    }
+    
+    dispatch(searchProperties(requestParams));
+  }, [dispatch, searchLocation, guests, startDate, endDate]);
 
   return (
     <div>
@@ -73,16 +49,18 @@ export default function SearchResults() {
           )}
         </div>
 
-        {loading ? (
+        {!searchLocation ? (
+          <p className="text-gray-500 mt-4">Please enter a location to search.</p>
+        ) : searchLoading ? (
           <p className="text-gray-500">Loading...</p>
-        ) : error ? (
-          <p className="text-gray-500 mt-4">{error}</p>
-        ) : properties.length > 0 ? (
+        ) : searchError ? (
+          <p className="text-gray-500 mt-4">{searchError}</p>
+        ) : searchResults.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {properties.map((prop) => (
+            {searchResults.map((prop) => (
               <PropertyCard
-                key={prop.id}
-                id={prop.id}
+                key={prop.id || prop._id}
+                id={prop.id || prop._id}
                 title={prop.title}
                 location={prop.location}
                 price={prop.price}

@@ -1,36 +1,23 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { fetchProperties } from "../store/slices/propertySlice";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
 import { AIConciergeButton, AIConciergePanel } from "../components/AIConcierge";
 import ConciergeResults from "../components/ConciergeResults";
 import AIConciergeService from "../services/AIConciergeService";
-import { API_ENDPOINTS } from "../utils/constants";
 
 const Home = () => {
-  const [properties, setProperties] = useState([]);
-  const [error, setError] = useState("");
-  // const [favourites, setFavourites] = useState([]);
+  const dispatch = useAppDispatch();
+  const { properties, loading, error } = useAppSelector((state) => state.property);
   
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeResults, setConciergeResults] = useState(null);
   const [conciergeError, setConciergeError] = useState("");
 
   useEffect(() => {
-    axios
-      .get(API_ENDPOINTS.PROPERTY.BASE)
-      .then((res) => {
-        if (res.data.length > 0) {
-          setProperties(res.data);
-        } else {
-          setError("No properties available at the moment.");
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching properties:", err);
-        setError("Unable to load properties. Please try again later.");
-      });
-  }, []);
+    dispatch(fetchProperties());
+  }, [dispatch]);
 
   const handleConciergeSubmit = async (formData) => {
     try {
@@ -59,12 +46,16 @@ const Home = () => {
       <div className="p-8">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Explore Homes</h2>
 
-        {error ? (
+        {loading ? (
+          <p className="text-center text-gray-500 font-medium">Loading properties...</p>
+        ) : error ? (
           <p className="text-center text-red-500 font-medium">{error}</p>
+        ) : properties.length === 0 ? (
+          <p className="text-center text-gray-500 font-medium">No properties available at the moment.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {properties.map((prop) => (
-              <PropertyCard key={prop._id} {...prop} />
+              <PropertyCard key={prop._id || prop.id} {...prop} />
             ))}
           </div>
         )}

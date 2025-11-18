@@ -1,47 +1,57 @@
-import { useState } from "react";
-import AuthService from "../services/AuthService";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { loginUser, clearError } from "../store/slices/authSlice";
 
 export default function Login() {
   const [role, setRole] = useState("traveler");
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { loading, error, role: userRole } = useAppSelector((state) => state.auth);
+
+  const [hasNavigated, setHasNavigated] = useState(false);
+
+  useEffect(() => {
+    // Clear any previous errors when component mounts
+    dispatch(clearError());
+    
+    // If already logged in, redirect immediately (only once on mount)
+    const currentRole = localStorage.getItem("role");
+    if (currentRole && !hasNavigated) {
+      setHasNavigated(true);
+      if (currentRole === "owner") {
+        navigate("/owner/dashboard", { replace: true });
+      } else if (currentRole === "traveler") {
+        navigate("/home", { replace: true });
+      }
+    }
+  }, [dispatch, navigate, hasNavigated]);
+
+  useEffect(() => {
+    // Only navigate after a successful login (when userRole changes from null to a role)
+    // This prevents infinite loops by only navigating when we actually log in
+    if (userRole && !loading && !hasNavigated) {
+      setHasNavigated(true);
+      if (userRole === "owner") {
+        navigate("/owner/dashboard", { replace: true });
+      } else if (userRole === "traveler") {
+        navigate("/home", { replace: true });
+      }
+    }
+  }, [userRole, navigate, loading, hasNavigated]);
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const res = await AuthService.login(role, formData);
-      const userRole = res.data.traveler?.role || res.data.role || role;
-
-      // ✅ Store JWT token for all future requests
-      localStorage.setItem("token", res.data.token);
-
-      // ✅ Store role and user info
-      localStorage.setItem("role", userRole);
-      localStorage.setItem("user_id", res.data.traveler?.id || "");
-
-      login(userRole);
-
-      if (userRole === "owner") {
-        navigate("/owner/dashboard");
-      } else {
-        navigate("/home");
-      }
-    } catch (err) {
-      console.error("Login failed:", err.response?.data || err.message);
-      setError(err.response?.data?.message || "Login failed. Please try again.");
-    } finally {
-      setLoading(false);
+    dispatch(clearError());
+    
+    const result = await dispatch(loginUser({ role, credentials: formData }));
+    
+    if (loginUser.fulfilled.match(result)) {
+      // Navigation is handled by useEffect above
     }
   };
 

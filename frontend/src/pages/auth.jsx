@@ -1,7 +1,7 @@
-import { useState } from "react";
-import AuthService from "../services/AuthService";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { loginUser, signupUser, clearError } from "../store/slices/authSlice";
 
 const COUNTRIES = [
   { code: "US", name: "United States" },
@@ -17,10 +17,38 @@ const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 export default function AuthPage() {
   const [isSignup, setIsSignup] = useState(true);      
   const [role, setRole] = useState("traveler");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [hasNavigated, setHasNavigated] = useState(false);
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { login } = useAuth();        
+  const { loading, error, role: userRole } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    dispatch(clearError());
+    
+    // If already logged in, redirect immediately (only once on mount)
+    const currentRole = localStorage.getItem("role");
+    if (currentRole && !hasNavigated) {
+      setHasNavigated(true);
+      if (currentRole === "owner") {
+        navigate("/owner/dashboard", { replace: true });
+      } else if (currentRole === "traveler") {
+        navigate("/home", { replace: true });
+      }
+    }
+  }, [dispatch, navigate, hasNavigated]);
+
+  useEffect(() => {
+    // Only navigate after successful login/signup (when userRole changes from null to a role)
+    // This prevents infinite loops by only navigating when we actually authenticate
+    if (userRole && !loading && !hasNavigated) {
+      setHasNavigated(true);
+      if (userRole === "owner") {
+        navigate("/owner/dashboard", { replace: true });
+      } else if (userRole === "traveler") {
+        navigate("/home", { replace: true });
+      }
+    }
+  }, [userRole, navigate, loading, hasNavigated]);        
 
   const [formData, setFormData] = useState({
     email: "",
@@ -41,63 +69,43 @@ export default function AuthPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    dispatch(clearError());
 
-    try {
-      if (isSignup) {
-        const payload =
-          role === "owner"
-            ? {
-                role,
-                name: formData.name,
-                email: formData.email,
-                password: formData.password,
-                phone: formData.phone,
-                city: formData.city,
-                country: formData.country,
-                language: formData.language,
-                gender: formData.gender,
-                location: formData.location, 
-              }
-            : {
-                role,
-                name: formData.name,
-                email: formData.email,
-                password: formData.password,
-                phone: formData.phone,
-                city: formData.city,
-                country: formData.country,
-                language: formData.language,
-                gender: formData.gender,
-              };
+    if (isSignup) {
+      const payload =
+        role === "owner"
+          ? {
+              role,
+              name: formData.name,
+              email: formData.email,
+              password: formData.password,
+              phone: formData.phone,
+              city: formData.city,
+              country: formData.country,
+              language: formData.language,
+              gender: formData.gender,
+              location: formData.location, 
+            }
+          : {
+              role,
+              name: formData.name,
+              email: formData.email,
+              password: formData.password,
+              phone: formData.phone,
+              city: formData.city,
+              country: formData.country,
+              language: formData.language,
+              gender: formData.gender,
+            };
 
-        const res = await AuthService.signup(role, payload);
-        console.log("Signup success:", res.data);
-        navigate("/login");
-      } else {
-        const payload = {
-          email: formData.email,
-          password: formData.password,
-        };
+      await dispatch(signupUser({ role, credentials: payload }));
+    } else {
+      const payload = {
+        email: formData.email,
+        password: formData.password,
+      };
 
-        const res = await AuthService.login(role, payload);
-        const userRole = res.data.role || role;
-        localStorage.setItem("role", userRole);
-        localStorage.setItem("user_id", res.data.user?.id || "");
-        login(userRole);
-
-        if (userRole === "owner") {
-          navigate("/owner/dashboard");
-        } else {
-          navigate("/home");
-        }
-      }
-    } catch (err) {
-      console.error("Auth error:", err.response?.data || err.message);
-      setError(err.response?.data?.message || (isSignup ? "Signup failed. Try again." : "Login failed. Please try again."));
-    } finally {
-      setLoading(false);
+      await dispatch(loginUser({ role, credentials: payload }));
     }
   };
 

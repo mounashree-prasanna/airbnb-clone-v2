@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { API_ENDPOINTS } from "../utils/constants";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { createBooking, clearBookingMessage, fetchTravelerBookings } from "../store/slices/bookingSlice";
 
 export default function BookingModal({ propertyId, nextAvailableDate, onClose, price }) {
+  const dispatch = useAppDispatch();
+  const { creating, bookingMessage, error } = useAppSelector((state) => state.booking);
+  
   const [formData, setFormData] = useState({
     start_date: "",
     end_date: "",
     guests: 1,
   });
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
   const [minDate, setMinDate] = useState("");
   const [total, setTotal] = useState(0);
 
@@ -47,42 +48,32 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
     setTotal(calculateTotal(newFormData));
   };
 
+  useEffect(() => {
+    // Clear message when component mounts
+    dispatch(clearBookingMessage());
+  }, [dispatch]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
+    dispatch(clearBookingMessage());
 
-    try {
-      const traveler_id = localStorage.getItem("traveler_id"); 
+    const traveler_id = localStorage.getItem("traveler_id") || localStorage.getItem("user_id");
 
-      console.log({
-        traveler_id,
-        property_id: propertyId,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        guests: formData.guests,
-      });
+    const result = await dispatch(createBooking({
+      traveler_id,
+      property_id: propertyId,
+      start_date: formData.start_date,
+      end_date: formData.end_date,
+      guests: formData.guests,
+    }));
 
-      const res = await axios.post(
-        API_ENDPOINTS.BOOKING.BASE,
-        {
-          traveler_id,
-          property_id: propertyId,
-          start_date: formData.start_date,
-          end_date: formData.end_date,
-          guests: formData.guests,
-        },
-        { withCredentials: true }
-      );
-
-      setMessage(` ${res.data.message}`);
-    } catch (err) {
-      console.error("Booking failed:", err);
-      setMessage(
-        err.response?.data?.error || "Something went wrong. Please try again."
-      );
-    } finally {
-      setLoading(false);
+    if (createBooking.fulfilled.match(result)) {
+      // Refresh bookings list
+      dispatch(fetchTravelerBookings());
+      // Close modal after a short delay
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     }
   };
 
@@ -91,9 +82,14 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
       <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
         <h2 className="text-2xl font-bold mb-4 text-center">Book This Property</h2>
 
-        {message && (
+        {bookingMessage && (
           <p className="text-center text-sm mb-3 text-green-600 font-medium">
-            {message}
+            {bookingMessage}
+          </p>
+        )}
+        {error && (
+          <p className="text-center text-sm mb-3 text-red-600 font-medium">
+            {error}
           </p>
         )}
 
@@ -170,10 +166,10 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={creating}
             className="w-full bg-rose-500 text-white py-2 rounded-md hover:bg-rose-600 transition disabled:bg-gray-400"
           >
-            {loading ? "Booking..." : "Confirm Booking"}
+            {creating ? "Booking..." : "Confirm Booking"}
           </button>
         </form>
 

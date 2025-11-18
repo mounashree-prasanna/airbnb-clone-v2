@@ -1,24 +1,21 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { logoutUser } from "../store/slices/authSlice";
 
 export default function Logout() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const { role } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    const logoutUser = async () => {
-      try {
-        await logout();
-      } catch (err) {
-        console.error("Logout failed:", err);
-      } finally {
-        navigate("/login");
-      }
+    const performLogout = async () => {
+      await dispatch(logoutUser(role));
+      navigate("/login");
     };
 
-    logoutUser();
-  }, [navigate, logout]);
+    performLogout();
+  }, [navigate, dispatch, role]);
 
   return (
     <div className="flex justify-center items-center min-h-screen text-gray-700 text-lg">
