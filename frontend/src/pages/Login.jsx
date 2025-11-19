@@ -6,8 +6,7 @@ import { loginUser } from "../store/authSlice";
 export default function Login() {
   const [role, setRole] = useState("traveler");
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 

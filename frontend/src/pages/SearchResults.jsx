@@ -109,7 +109,9 @@ export default function SearchResults() {
           )}
         </div>
 
-        {loading ? (
+        {!searchLocation ? (
+          <p className="text-gray-500 mt-4">Please enter a location to search.</p>
+        ) : searchLoading ? (
           <p className="text-gray-500">Loading...</p>
         ) : effectiveError ? (
           <p className="text-gray-500 mt-4">{effectiveError}</p>

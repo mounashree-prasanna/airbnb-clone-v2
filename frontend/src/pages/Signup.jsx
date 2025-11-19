@@ -1,6 +1,7 @@
-import { useState } from "react";
-import AuthService from "../services/AuthService";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { signupUser, clearError } from "../store/slices/authSlice";
 
 
 const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{9,}$/;
@@ -11,6 +12,38 @@ export default function Signup({ redirectTo }) {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const navigate = useNavigate();
+  const { loading, error, role: userRole } = useAppSelector((state) => state.auth);
+
+  const [hasNavigated, setHasNavigated] = useState(false);
+
+  useEffect(() => {
+    // Clear any previous errors when component mounts
+    dispatch(clearError());
+    
+    // If already logged in, redirect immediately (only once on mount)
+    const currentRole = localStorage.getItem("role");
+    if (currentRole && !hasNavigated) {
+      setHasNavigated(true);
+      if (currentRole === "owner") {
+        navigate("/owner/dashboard", { replace: true });
+      } else if (currentRole === "traveler") {
+        navigate(redirectTo || "/home", { replace: true });
+      }
+    }
+  }, [dispatch, navigate, redirectTo, hasNavigated]);
+
+  useEffect(() => {
+    // Only navigate after a successful signup (when userRole changes from null to a role)
+    // This prevents infinite loops by only navigating when we actually sign up
+    if (userRole && !loading && !hasNavigated) {
+      setHasNavigated(true);
+      if (userRole === "owner") {
+        navigate("/owner/dashboard", { replace: true });
+      } else if (userRole === "traveler") {
+        navigate(redirectTo || "/home", { replace: true });
+      }
+    }
+  }, [userRole, navigate, redirectTo, loading, hasNavigated]);
 
   const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -104,9 +137,14 @@ export default function Signup({ redirectTo }) {
 
           <button
             type="submit"
-            className="w-full bg-rose-500 text-white py-3 rounded-lg hover:bg-rose-600"
+            disabled={loading}
+            className={`w-full py-3 rounded-lg font-semibold text-white transition ${
+              loading
+                ? "bg-rose-300 cursor-not-allowed"
+                : "bg-rose-500 hover:bg-rose-600"
+            }`}
           >
-            Sign Up
+            {loading ? "Signing up..." : "Sign Up"}
           </button>
         </form>
 

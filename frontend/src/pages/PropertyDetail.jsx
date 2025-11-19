@@ -1,28 +1,24 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { fetchPropertyDetail } from "../store/slices/propertySlice";
 import Navbar from "../components/Navbar";
 import BookingModal from "./BookingModal";
-import { API_ENDPOINTS } from "../utils/constants";
 
 const PropertyDetail = () => {
   const { id } = useParams();
-  const [property, setProperty] = useState(null);
-  const [error, setError] = useState("");
+  const dispatch = useAppDispatch();
+  const { currentProperty, detailLoading, detailError } = useAppSelector((state) => state.property);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    axios
-      .get(`${API_ENDPOINTS.PROPERTY.BASE}/${id}`, { withCredentials: true })
-      .then((res) => {
-        if (res.data) setProperty(res.data);
-        else setError("Property not found.");
-      })
-      .catch((err) => {
-        console.error("Error fetching property:", err);
-        setError("Unable to load property details. Please try again later.");
-      });
-  }, [id]);
+    if (id) {
+      dispatch(fetchPropertyDetail(id));
+    }
+  }, [dispatch, id]);
+
+  const property = currentProperty;
+  const error = detailError;
 
   if (error) {
     return (
@@ -33,7 +29,7 @@ const PropertyDetail = () => {
     );
   }
 
-  if (!property) {
+  if (detailLoading) {
     return (
       <div>
         <Navbar />

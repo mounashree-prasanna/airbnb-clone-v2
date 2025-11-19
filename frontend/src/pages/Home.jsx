@@ -59,7 +59,7 @@ const Home = () => {
         ) : properties.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {properties.map((prop) => (
-              <PropertyCard key={prop._id} {...prop} />
+              <PropertyCard key={prop._id || prop.id} {...prop} />
             ))}
           </div>
         ) : (

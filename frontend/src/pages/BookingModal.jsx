@@ -16,8 +16,6 @@ export default function BookingModal({
     end_date: "",
     guests: 1,
   });
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
   const [minDate, setMinDate] = useState("");
   const [total, setTotal] = useState(0);
   const dispatch = useDispatch();
@@ -73,6 +71,11 @@ export default function BookingModal({
     setFormData(newFormData);
     setTotal(calculateTotal(newFormData));
   };
+
+  useEffect(() => {
+    // Clear message when component mounts
+    dispatch(clearBookingMessage());
+  }, [dispatch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -197,10 +200,10 @@ export default function BookingModal({
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={creating}
             className="w-full bg-rose-500 text-white py-2 rounded-md hover:bg-rose-600 transition disabled:bg-gray-400"
           >
-            {loading ? "Booking..." : "Confirm Booking"}
+            {creating ? "Booking..." : "Confirm Booking"}
           </button>
         </form>
 

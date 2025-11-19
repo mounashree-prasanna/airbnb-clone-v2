@@ -9,8 +9,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 7002;
 
-// Middleware
-app.use(express.json());
+// Middleware - CORS must come FIRST to handle preflight requests
 app.use(
   cors({
     origin: [
@@ -24,6 +23,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.use(express.json());
 
 // Connect Database
 connectDB();
