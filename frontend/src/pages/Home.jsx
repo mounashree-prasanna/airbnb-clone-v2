@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
-import { AIConciergeButton, AIConciergePanel } from "../components/AIConcierge";
-import ConciergeResults from "../components/ConciergeResults";
-import AIConciergeService from "../services/AIConciergeService";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProperties } from "../store/propertySlice";
+import AIChatOnly from "../components/AIChatOnly";  
 
 const Home = () => {
   const dispatch = useDispatch();
@@ -13,9 +11,10 @@ const Home = () => {
     (state) => state.properties
   );
 
-  const [isConciergeOpen, setIsConciergeOpen] = useState(false);
-  const [conciergeResults, setConciergeResults] = useState(null);
-  const [conciergeError, setConciergeError] = useState("");
+  // 🔹 Assuming your auth slice stores the logged-in user
+  const { user } = useSelector((state) => state.auth || {}); 
+
+  const [showLoginError, setShowLoginError] = useState(false);
 
   useEffect(() => {
     if (status === "idle") {
@@ -23,25 +22,12 @@ const Home = () => {
     }
   }, [dispatch, status]);
 
-  const handleConciergeSubmit = async (formData) => {
-    try {
-      setConciergeError("");
-      const results = await AIConciergeService.getRecommendations(formData);
-      setConciergeResults(results);
-      setIsConciergeOpen(false);
-    } catch (error) {
-      setConciergeError(error.message);
-      console.error("Concierge error:", error);
+  const handleChatAccess = () => {
+    if (!user || !user._id) {
+      setShowLoginError(true);
+      return null;
     }
-  };
-
-  const handleCloseConcierge = () => {
-    setIsConciergeOpen(false);
-    setConciergeError("");
-  };
-
-  const handleCloseResults = () => {
-    setConciergeResults(null);
+    return <AIChatOnly travelerId={user._id} />;
   };
 
   return (
@@ -59,7 +45,7 @@ const Home = () => {
         ) : properties.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {properties.map((prop) => (
-              <PropertyCard key={prop._id || prop.id} {...prop} />
+              <PropertyCard key={prop._id} {...prop} />
             ))}
           </div>
         ) : (
@@ -69,27 +55,17 @@ const Home = () => {
         )}
       </div>
 
-      <AIConciergeButton onClick={() => setIsConciergeOpen(true)} />
+      {/* ✅ Show Chatbot only for logged-in travelers */}
+      {user && user._id && <AIChatOnly travelerId={user._id} />}
 
-      <AIConciergePanel
-        isOpen={isConciergeOpen}
-        onClose={handleCloseConcierge}
-        onSubmit={handleConciergeSubmit}
-      />
-
-      <ConciergeResults
-        results={conciergeResults}
-        onClose={handleCloseResults}
-      />
-
-      {conciergeError && (
-        <div className="fixed bottom-4 left-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50">
+      {/* ❌ Error message for not logged-in users */}
+      {showLoginError && (
+        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50">
           <div className="flex items-center">
-            <span className="font-medium">Error:</span>
-            <span className="ml-2">{conciergeError}</span>
+            <span className="font-semibold">Please log in to use the AI Concierge.</span>
             <button
-              onClick={() => setConciergeError("")}
-              className="ml-4 text-red-500 hover:text-red-700"
+              onClick={() => setShowLoginError(false)}
+              className="ml-4 text-red-500 hover:text-red-700 font-bold"
             >
               ×
             </button>

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-deployment
+  labels:
+    app: ai-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-service
+  template:
+    metadata:
+      labels:
+        app: ai-service
+    spec:
+      containers:
+        - name: ai-service
+          image: ai-service:latest   # Replace with your actual image (e.g., yourname/ai-service:1.0)
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7005
+
+          env:
+            # ---- Core Settings ----
+            - name: PORT
+              value: "7005"
+
+            # ---- MongoDB Atlas ----
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-uri
+            - name: MONGO_DB
+              value: "airbnb_db"
+
+            # ---- Tavily & OpenWeather ----
+            - name: TAVILY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-secrets
+                  key: tavily
+            - name: OPEN_WEATHER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-secrets
+                  key: openweather
+
+            # ---- Ollama Mistral ----
+            - name: OLLAMA_BASE_URL
+              value: "http://ollama:11434"
+            - name: OLLAMA_MODEL
+              value: "mistral"
+      restartPolicy: Always
