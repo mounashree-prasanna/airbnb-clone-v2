@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.post("/signup", signupTraveler);
 router.post("/login", loginTraveler);
-router.get("/logout", logoutTraveler);
+router.post("/logout", logoutTraveler);
+router.get("/logout", logoutTraveler); // Support both GET and POST for backward compatibility
 router.get("/check-session", checkSession);
 
 export default router;

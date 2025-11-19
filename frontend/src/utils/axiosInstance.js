@@ -25,10 +25,6 @@ axiosInstance.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       console.warn("⚠️ Unauthorized or expired token");
-      // Optionally remove invalid token
-      localStorage.removeItem("token");
-      // Optional: redirect to login page
-      window.location.href = "/login";
     }
     return Promise.reject(error);
   }

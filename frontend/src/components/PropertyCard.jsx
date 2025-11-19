@@ -1,25 +1,21 @@
 import { Link } from "react-router-dom";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect, useMemo } from "react";
 import { API_ENDPOINTS } from "../utils/constants";
 import axiosInstance from "../utils/axiosInstance";
 
-const PropertyCard = ({ _id, title, location, price, photo_url }) => {
+const PropertyCard = ({ _id, id, title, location, price, photo_url }) => {
+  const propertyId = useMemo(() => _id || id, [_id, id]);
   const [isFavourite, setIsFavourite] = useState(false);
 
   useEffect(() => {
+    if (!propertyId) return;
+
     const fetchFavourites = async () => {
       try {
-        const token = localStorage.getItem("token"); // or sessionStorage if you're using that
         const res = await axiosInstance.get(
           API_ENDPOINTS.TRAVELER.FAVOURITES + "/my-favourites",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`, // ✅ include JWT token
-            },
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
         
         const favourites = res.data || [];
@@ -28,7 +24,7 @@ const PropertyCard = ({ _id, title, location, price, photo_url }) => {
         // Properties on the Home page come from `getProperties` and use `_id`.
         // So treat a property as favourite if either `id` or `_id` matches this card's `_id`.
         const alreadyFav = favourites.some(
-          (fav) => fav.id === _id || fav._id === _id
+          (fav) => fav.id === propertyId || fav._id === propertyId
         );
         setIsFavourite(alreadyFav);
       } catch (err) {
@@ -36,19 +32,20 @@ const PropertyCard = ({ _id, title, location, price, photo_url }) => {
       }
     };
     fetchFavourites();
-  }, [_id]);
+  }, [propertyId]);
 
 
   const toggleFavourite = async () => {
+    if (!propertyId) return;
     try {
       if (isFavourite) {
         await axiosInstance.delete(
-          `${API_ENDPOINTS.TRAVELER.FAVOURITES}/remove/${_id}`
+          `${API_ENDPOINTS.TRAVELER.FAVOURITES}/remove/${propertyId}`
         );
         setIsFavourite(false);
       } else {
         await axiosInstance.post(API_ENDPOINTS.TRAVELER.FAVOURITES + "/add", {
-          propertyId: _id,
+          propertyId,
         });
         // If the request succeeds (201), mark as favourite
         setIsFavourite(true);
@@ -91,12 +88,14 @@ const PropertyCard = ({ _id, title, location, price, photo_url }) => {
         <p className="text-gray-500 text-sm truncate">{location}</p>
         <p className="text-rose-600 font-bold mt-1">${price} / night</p>
 
-        <Link
-          to={`/property/${_id}`}  
-          className="inline-block mt-2 text-sm text-white bg-rose-500 px-3 py-1 rounded-lg hover:bg-rose-600"
-        >
-          View
-        </Link>
+        {propertyId && (
+          <Link
+            to={`/property/${propertyId}`}  
+            className="inline-block mt-2 text-sm text-white bg-rose-500 px-3 py-1 rounded-lg hover:bg-rose-600"
+          >
+            View
+          </Link>
+        )}
       </div>
     </div>
   );

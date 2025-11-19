@@ -1,51 +1,27 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import Navbar from "../components/Navbar";
-import { API_ENDPOINTS } from "../utils/constants";
+import {
+  fetchOwnerBookings,
+  updateOwnerBookingStatus,
+} from "../store/bookingSlice";
 
 export default function OwnerBookings() {
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const { ownerItems, ownerStatus, ownerError } = useSelector(
+    (state) => state.bookings
+  );
 
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        const res = await axios.get(API_ENDPOINTS.BOOKING.OWNER, {
-          withCredentials: true,
-        });
-        setBookings(res.data);
-      } catch (err) {
-        console.error("Error fetching owner bookings:", err);
-        setError("Failed to load bookings.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBookings();
-  }, []);
+    // Fetch bookings on mount
+    dispatch(fetchOwnerBookings());
+  }, [dispatch]);
 
-  const handleAction = async (id, action) => {
-    try {
-      await axios.put(
-        `${API_ENDPOINTS.BOOKING.BASE}/${id}/${action}`,
-        {},
-        { withCredentials: true }
-      );
-      setBookings((prev) =>
-        prev.map((b) =>
-          b.booking_id === id
-            ? { ...b, status: action === "accept" ? "ACCEPTED" : "CANCELLED" }
-            : b
-        )
-      );
-    } catch (err) {
-      console.error(`Failed to ${action} booking:`, err);
-      alert(`Failed to ${action} booking`);
-    }
+  const handleAction = (id, status) => {
+    dispatch(updateOwnerBookingStatus({ bookingId: id, status }));
   };
 
-  if (loading) {
+  if (ownerStatus === "loading") {
     return (
       <div>
         <Navbar />
@@ -54,11 +30,11 @@ export default function OwnerBookings() {
     );
   }
 
-  if (error) {
+  if (ownerError) {
     return (
       <div>
         <Navbar />
-        <p className="text-center text-red-600 mt-10">{error}</p>
+        <p className="text-center text-red-600 mt-10">{ownerError}</p>
       </div>
     );
   }
@@ -68,13 +44,13 @@ export default function OwnerBookings() {
       <Navbar />
       <div className="p-6 max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold mb-4">Incoming Booking Requests</h2>
-        {bookings.length === 0 ? (
+        {ownerItems.length === 0 ? (
           <p className="text-gray-500">No bookings yet.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {bookings.map((b) => (
+            {ownerItems.map((b) => (
               <div
-                key={b.booking_id}
+                key={b.booking_id || b._id}
                 className="border rounded-lg bg-white shadow p-4 space-y-2"
               >
                 <img
@@ -105,13 +81,17 @@ export default function OwnerBookings() {
                 {b.status === "PENDING" && (
                   <div className="flex gap-2 mt-2">
                     <button
-                      onClick={() => handleAction(b.booking_id, "accept")}
+                      onClick={() =>
+                        handleAction(b.booking_id || b._id, "ACCEPTED")
+                      }
                       className="flex-1 bg-emerald-600 text-white py-1 rounded hover:bg-emerald-700"
                     >
                       Accept
                     </button>
                     <button
-                      onClick={() => handleAction(b.booking_id, "cancel")}
+                      onClick={() =>
+                        handleAction(b.booking_id || b._id, "CANCELLED")
+                      }
                       className="flex-1 bg-rose-600 text-white py-1 rounded hover:bg-rose-700"
                     >
                       Reject

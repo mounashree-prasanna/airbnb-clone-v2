@@ -1,20 +1,93 @@
-import { useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { fetchTravelerBookings, cancelBooking, clearBookingError } from "../store/slices/bookingSlice";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import Navbar from "../components/Navbar";
+import {
+  fetchTravelerBookings,
+  cancelBooking,
+} from "../store/bookingSlice";
+import axios from "axios";
+import { API_ENDPOINTS } from "../utils/constants";
 
 const TravelerHistory = () => {
-  const dispatch = useAppDispatch();
-  const { bookings, loading, error, cancelling } = useAppSelector((state) => state.booking);
-
-  useEffect(() => {
-    dispatch(clearBookingError());
-    dispatch(fetchTravelerBookings());
-  }, [dispatch]);
+  const dispatch = useDispatch();
+  const { items: bookings, status, error, cancellingId } = useSelector(
+    (state) => state.bookings
+  );
+  const [displayBookings, setDisplayBookings] = useState([]);
 
   const handleCancel = async (bookingId) => {
-    await dispatch(cancelBooking(bookingId));
+    dispatch(cancelBooking(bookingId));
   };
+
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(fetchTravelerBookings());
+    }
+  }, [dispatch, status]);
+
+  useEffect(() => {
+    setDisplayBookings(bookings);
+  }, [bookings]);
+
+  useEffect(() => {
+    const missingDetails = bookings.filter(
+      (booking) =>
+        booking.propertyId &&
+        (!booking.title || !booking.photo_url || !booking.location)
+    );
+    if (missingDetails.length === 0) return;
+
+    let ignore = false;
+
+    const enrichBookings = async () => {
+      try {
+        const updates = await Promise.all(
+          missingDetails.map(async (booking) => {
+            try {
+              const { data } = await axios.get(
+                `${API_ENDPOINTS.PROPERTY.BASE}/${booking.propertyId}`,
+                { withCredentials: true }
+              );
+              return {
+                propertyId: booking.propertyId,
+                title: data.title,
+                location: data.location,
+                photo_url: data.photo_url,
+              };
+            } catch (err) {
+              console.warn(
+                "Failed to fetch property details for booking",
+                booking.propertyId,
+                err.message
+              );
+              return null;
+            }
+          })
+        );
+
+        if (ignore) return;
+
+        setDisplayBookings((prev) =>
+          prev.map((booking) => {
+            const enrichment = updates.find(
+              (update) =>
+                update &&
+                update.propertyId &&
+                update.propertyId === booking.propertyId
+            );
+            return enrichment ? { ...booking, ...enrichment } : booking;
+          })
+        );
+      } catch (err) {
+        console.warn("Failed to enrich bookings:", err);
+      }
+    };
+
+    enrichBookings();
+    return () => {
+      ignore = true;
+    };
+  }, [bookings]);
 
   return (
     <div>
@@ -22,15 +95,15 @@ const TravelerHistory = () => {
       <div className="p-6 max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold mb-4">My Bookings</h2>
 
-        {loading ? (
+        {status === "loading" ? (
           <p className="text-gray-500">Loading your bookings...</p>
         ) : error ? (
           <p className="text-red-500">{error}</p>
-        ) : bookings.length > 0 ? (
+        ) : displayBookings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {bookings.map((booking) => (
+            {displayBookings.map((booking) => (
               <div
-                key={booking.id}
+                key={booking._id}
                 className="border rounded-lg shadow hover:shadow-lg transition duration-200 bg-white"
               >
                 <img
@@ -49,7 +122,7 @@ const TravelerHistory = () => {
                     {booking.city || booking.location || ""}
                   </p>
                   <p className="text-gray-500 text-sm">
-                    {booking.start_date} → {booking.end_date}
+                    {booking.startDate ? new Date(booking.startDate).toLocaleDateString() : booking.start_date} → {booking.endDate ? new Date(booking.endDate).toLocaleDateString() : booking.end_date}
                   </p>
                   <p className="text-gray-700 text-sm">
                     Guests: {booking.guests}
@@ -72,15 +145,16 @@ const TravelerHistory = () => {
                   
                     {booking.status !== "CANCELLED" && booking.status !== "ACCEPTED" && (
                       <button
-                        onClick={() => handleCancel(booking.id)}
-                        disabled={cancelling === booking.id}
+                        onClick={() => handleCancel(booking._id)}
+                        disabled={cancellingId === booking._id}
                         className="w-full mt-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white py-2 px-4 rounded-md text-sm transition-colors duration-200"
                       >
-                        {cancelling === booking.id ? "Cancelling..." : "Cancel Booking"}
+                        {cancellingId === booking._id ? "Cancelling..." : "Cancel Booking"}
                       </button>
                     )}
                 </div>
               </div>
+
             ))}
           </div>
         ) : (

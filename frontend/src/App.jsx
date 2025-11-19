@@ -1,10 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { Provider } from "react-redux";
-import { store } from "./store";
-import { useAppSelector } from "./store/hooks";
 import { useEffect } from "react";
-import { checkSession } from "./store/slices/authSlice";
-import { useAppDispatch } from "./store/hooks";
+import { useDispatch, useSelector } from "react-redux";
+import { checkSession } from "./store/authSlice";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -22,41 +19,37 @@ import TravelerHistory from "./pages/TravelerHistory";
 import SearchResults from "./pages/SearchResults";
 
 function AppRoutes() {
-  const dispatch = useAppDispatch();
-  const { isLoggedIn, role, loading } = useAppSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const { isAuthenticated, role, status } = useSelector((state) => state.auth);
+  console.log("Auth state on load:", { isAuthenticated, role, status });
 
   useEffect(() => {
-    // Only check session once on mount
-    const storedRole = localStorage.getItem("role");
-    if (storedRole) {
-      dispatch(checkSession(storedRole));
-    } else {
-      // Set loading to false if no role found
-      dispatch(checkSession(null));
+    if (status === "idle") {
+      dispatch(checkSession());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run once on mount
+  }, [dispatch, status]);
 
-  if (loading)
+  if (status === "loading") {
     return (
       <div className="flex justify-center items-center h-screen text-gray-700 text-lg">
         Checking session...
       </div>
     );
+  }
 
   const ProtectedRoute = ({ element }) => {
-    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
     return element;
   };
 
   const TravelerRoute = ({ element }) => {
-    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
     if (role !== "traveler") return <Navigate to="/owner/dashboard" replace />;
     return element;
   };
 
   const OwnerRoute = ({ element }) => {
-    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
     if (role !== "owner") return <Navigate to="/home" replace />;
     return element;
   };
@@ -92,11 +85,9 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Provider store={store}>
-      <Router>
-        <AppRoutes />
-      </Router>
-    </Provider>
+    <Router>
+      <AppRoutes />
+    </Router>
   );
 }
 

@@ -1,16 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaGlobe, FaBars, FaHeart, FaSearch } from "react-icons/fa";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { logoutUser } from "../store/slices/authSlice";
+import { useSelector } from "react-redux";
 
 export default function DashboardNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useAppDispatch();
-  const { isLoggedIn, role } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, role } = useSelector((state) => state.auth);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -21,11 +19,6 @@ export default function DashboardNavbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleLogout = async () => {
-    await dispatch(logoutUser(role));
-    navigate("/login");
-  };
 
   const [locationSearch, setLocationSearch] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -40,9 +33,15 @@ export default function DashboardNavbar() {
   const minDate = getTomorrowDate();
 
   const handleSearch = () => {
-    if (!locationSearch && !checkIn && !checkOut && !guests) return;
-    const datesParam = checkIn && checkOut ? `${checkIn}|${checkOut}` : "";
-    navigate(`/search?location=${locationSearch}&dates=${datesParam}&guests=${guests}`);
+    const params = new URLSearchParams();
+    if (locationSearch.trim()) params.set("location", locationSearch.trim());
+    if (checkIn) params.set("startDate", checkIn);
+    if (checkOut) params.set("endDate", checkOut);
+    if (guests) params.set("guests", guests);
+
+    if ([...params.keys()].length === 0) return;
+
+    navigate(`/search?${params.toString()}`);
   };
 
   const hideSearch = role === "owner" && location.pathname.startsWith("/owner");
@@ -157,7 +156,7 @@ export default function DashboardNavbar() {
       <div className="flex items-center space-x-4 relative text-white" ref={menuRef}>
         <FaGlobe className="text-lg cursor-pointer hover:scale-110 transition-transform" />
 
-        {isLoggedIn && role === "traveler" && (
+        {isAuthenticated && role === "traveler" && (
           <Link to="/favourites" className="hover:text-pink-300">
             <FaHeart className="text-lg cursor-pointer hover:scale-110 transition-transform" />
           </Link>
@@ -173,7 +172,7 @@ export default function DashboardNavbar() {
         {menuOpen && (
           <div className="absolute right-0 top-12 w-56 bg-white shadow-lg rounded-md text-gray-700 z-20 animate-fadeIn">
             <ul className="text-sm">
-              {isLoggedIn ? (
+              {isAuthenticated ? (
                 <>
                   {role === "traveler" && (
                     <>

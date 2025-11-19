@@ -4,8 +4,18 @@ const Property = require("../models/Property");
 // @desc Get all properties
 exports.getProperties = async (req, res) => {
   try {
-    const properties = await Property.find();
-    res.json(properties);
+    const properties = await Property.find().lean();
+    // Normalize photoUrl to photo_url for frontend consistency
+    const normalizedProperties = properties.map(prop => {
+      const normalized = { ...prop };
+      normalized.id = normalized._id;
+      delete normalized._id;
+      if (normalized.photoUrl) {
+        normalized.photo_url = normalized.photoUrl;
+      }
+      return normalized;
+    });
+    res.json(normalizedProperties);
   } catch (err) {
     console.error("getProperties error:", err);
     res.status(500).json({ message: "Server error" });
@@ -22,8 +32,18 @@ exports.searchProperties = async (req, res) => {
     if (minPrice) filter.price.$gte = parseInt(minPrice);
     if (maxPrice) filter.price.$lte = parseInt(maxPrice);
 
-    const properties = await Property.find(filter);
-    res.json(properties);
+    const properties = await Property.find(filter).lean();
+    // Normalize photoUrl to photo_url for frontend consistency
+    const normalizedProperties = properties.map(prop => {
+      const normalized = { ...prop };
+      normalized.id = normalized._id;
+      delete normalized._id;
+      if (normalized.photoUrl) {
+        normalized.photo_url = normalized.photoUrl;
+      }
+      return normalized;
+    });
+    res.json(normalizedProperties);
   } catch (err) {
     console.error("searchProperties error:", err);
     res.status(500).json({ message: "Server error" });
@@ -39,6 +59,16 @@ exports.getProperty = async (req, res) => {
     // Normalize field names for frontend
     property.id = property._id;
     delete property._id;
+    
+    // Normalize photoUrl to photo_url for frontend consistency
+    if (property.photoUrl) {
+      property.photo_url = property.photoUrl;
+    }
+    
+    // Ensure ownerId is available (normalize field name)
+    if (property.ownerId) {
+      property.ownerId = property.ownerId.toString();
+    }
 
     res.json(property);
   } catch (err) {

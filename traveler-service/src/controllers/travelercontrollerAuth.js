@@ -13,7 +13,7 @@ const generateToken = (traveler) => {
 // @desc Register new traveler
 export const signupTraveler = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, phone, city, country, language, gender } = req.body;
 
     // ✅ Validate role
     if (role && role !== "traveler") {
@@ -26,8 +26,15 @@ export const signupTraveler = async (req, res) => {
     if (existing)
       return res.status(400).json({ message: "Email already registered" });
 
-    // Always enforce traveler role
-    const traveler = new Traveler({ name, email, password, role: "traveler" });
+    // Always enforce traveler role, include optional fields
+    const travelerData = { name, email, password, role: "traveler" };
+    if (phone) travelerData.phone = phone;
+    if (city) travelerData.city = city;
+    if (country) travelerData.country = country;
+    if (language) travelerData.languages = language;
+    if (gender) travelerData.gender = gender;
+
+    const traveler = new Traveler(travelerData);
     await traveler.save();
 
     const token = generateToken(traveler);
@@ -44,7 +51,7 @@ export const signupTraveler = async (req, res) => {
     });
   } catch (error) {
     console.error("Traveler registration error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message || "Server error" });
   }
 };
 

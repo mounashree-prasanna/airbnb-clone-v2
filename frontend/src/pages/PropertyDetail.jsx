@@ -38,18 +38,16 @@ const PropertyDetail = () => {
     );
   }
 
-  if (!property) {
-    return (
-      <div>
-        <Navbar />
-        <p className="text-center text-gray-600 mt-10">Property not found.</p>
-      </div>
-    );
-  }
-
-  const imageSrc = property.photo_url
-    ? property.photo_url
+  const imageSrc = property.photo_url || property.photoUrl
+    ? (property.photo_url || property.photoUrl)
     : `https://source.unsplash.com/800x600/?${property.title},${property.location}`;
+
+  const guestCapacity =
+    property.guests ||
+    property.maxGuests ||
+    (property.bedrooms ? property.bedrooms * 2 : null);
+
+  const propertyId = property.id || property._id || id;
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -87,6 +85,7 @@ const PropertyDetail = () => {
           <p><strong>Type:</strong> {property.type || "N/A"}</p>
           <p><strong>Bedrooms:</strong> {property.bedrooms || "N/A"}</p>
           <p><strong>Bathrooms:</strong> {property.bathrooms || "N/A"}</p>
+          <p><strong>Guests:</strong> {guestCapacity || "N/A"}</p>
           <p><strong>Price:</strong> ${property.price} / night</p>
           <p className="col-span-2">
             <strong>Available:</strong> {property.next_available_date 
@@ -124,12 +123,14 @@ const PropertyDetail = () => {
           Book Now
         </button>
 
-        {showModal && (
+        {showModal && propertyId && (
           <BookingModal 
-            propertyId={property.id} 
+            propertyId={propertyId}
+            ownerId={property.ownerId || property.owner_id}
             nextAvailableDate={property.next_available_date}
             onClose={() => setShowModal(false)} 
             price={property.price}
+            maxGuests={guestCapacity}
           />
         )}
       </div>

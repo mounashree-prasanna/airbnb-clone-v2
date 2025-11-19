@@ -1,23 +1,27 @@
 import { useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { fetchProperties } from "../store/slices/propertySlice";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
 import { AIConciergeButton, AIConciergePanel } from "../components/AIConcierge";
 import ConciergeResults from "../components/ConciergeResults";
 import AIConciergeService from "../services/AIConciergeService";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProperties } from "../store/propertySlice";
 
 const Home = () => {
-  const dispatch = useAppDispatch();
-  const { properties, loading, error } = useAppSelector((state) => state.property);
-  
+  const dispatch = useDispatch();
+  const { items: properties, status, error } = useSelector(
+    (state) => state.properties
+  );
+
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeResults, setConciergeResults] = useState(null);
   const [conciergeError, setConciergeError] = useState("");
 
   useEffect(() => {
-    dispatch(fetchProperties());
-  }, [dispatch]);
+    if (status === "idle") {
+      dispatch(fetchProperties());
+    }
+  }, [dispatch, status]);
 
   const handleConciergeSubmit = async (formData) => {
     try {
@@ -46,18 +50,22 @@ const Home = () => {
       <div className="p-8">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Explore Homes</h2>
 
-        {loading ? (
-          <p className="text-center text-gray-500 font-medium">Loading properties...</p>
+        {status === "loading" ? (
+          <p className="text-center text-gray-500 font-medium">
+            Loading properties...
+          </p>
         ) : error ? (
           <p className="text-center text-red-500 font-medium">{error}</p>
-        ) : properties.length === 0 ? (
-          <p className="text-center text-gray-500 font-medium">No properties available at the moment.</p>
-        ) : (
+        ) : properties.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {properties.map((prop) => (
               <PropertyCard key={prop._id || prop.id} {...prop} />
             ))}
           </div>
+        ) : (
+          <p className="text-center text-gray-500">
+            No properties available at the moment.
+          </p>
         )}
       </div>
 
