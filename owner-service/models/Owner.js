@@ -7,6 +7,7 @@ const ownerSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   phone: { type: String },
+  location: { type: String },
   about: { type: String },
   city: { type: String },
   state: { type: String },

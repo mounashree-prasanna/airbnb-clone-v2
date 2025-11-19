@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { API_ENDPOINTS } from "../utils/constants";
+import { useDispatch } from "react-redux";
+import { createBooking } from "../store/bookingSlice";
 
-export default function BookingModal({ propertyId, nextAvailableDate, onClose, price }) {
+
+export default function BookingModal({
+  propertyId,
+  ownerId,
+  nextAvailableDate,
+  onClose,
+  price,
+  maxGuests,
+}) {
   const [formData, setFormData] = useState({
     start_date: "",
     end_date: "",
@@ -12,6 +20,7 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
   const [loading, setLoading] = useState(false);
   const [minDate, setMinDate] = useState("");
   const [total, setTotal] = useState(0);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const minDateValue = nextAvailableDate || (() => {
@@ -21,6 +30,14 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
     })();
     setMinDate(minDateValue);
   }, [nextAvailableDate]);
+
+  useEffect(() => {
+    if (maxGuests && formData.guests > maxGuests) {
+      const adjusted = { ...formData, guests: maxGuests };
+      setFormData(adjusted);
+      setTotal(calculateTotal(adjusted));
+    }
+  }, [maxGuests, formData]);
 
   const calculateTotal = (data) => {
     const { start_date, end_date, guests } = data;
@@ -35,12 +52,22 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
   const handleChange = (e) => {
     const { name, value } = e.target;
     const newFormData = { ...formData };
-    
-    if (name === 'start_date' && formData.end_date && value >= formData.end_date) {
-      newFormData[name] = value;
+    const parsedValue =
+      name === "guests" ? Math.max(1, Number(value)) : value;
+
+    if (
+      name === "start_date" &&
+      formData.end_date &&
+      parsedValue >= formData.end_date
+    ) {
+      newFormData[name] = parsedValue;
       newFormData.end_date = "";
     } else {
-      newFormData[name] = value;
+      newFormData[name] = parsedValue;
+    }
+
+    if (name === "guests" && maxGuests) {
+      newFormData.guests = Math.min(parsedValue, maxGuests);
     }
     
     setFormData(newFormData);
@@ -53,34 +80,24 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
     setMessage("");
 
     try {
-      const traveler_id = localStorage.getItem("traveler_id"); 
-
-      console.log({
-        traveler_id,
-        property_id: propertyId,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        guests: formData.guests,
-      });
-
-      const res = await axios.post(
-        API_ENDPOINTS.BOOKING.BASE,
-        {
-          traveler_id,
-          property_id: propertyId,
-          start_date: formData.start_date,
-          end_date: formData.end_date,
+      const result = await dispatch(
+        createBooking({
+          propertyId,
+          ownerId,
+          startDate: formData.start_date,
+          endDate: formData.end_date,
           guests: formData.guests,
-        },
-        { withCredentials: true }
-      );
+        })
+      ).unwrap();
 
-      setMessage(` ${res.data.message}`);
-    } catch (err) {
-      console.error("Booking failed:", err);
-      setMessage(
-        err.response?.data?.error || "Something went wrong. Please try again."
-      );
+      setMessage(result?.message || "Booking created successfully!");
+      // Close modal after successful booking
+      setTimeout(() => {
+        onClose();
+        window.location.reload(); // Refresh to show new booking
+      }, 1500);
+    } catch (errMessage) {
+      setMessage(errMessage || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -92,7 +109,11 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
         <h2 className="text-2xl font-bold mb-4 text-center">Book This Property</h2>
 
         {message && (
-          <p className="text-center text-sm mb-3 text-green-600 font-medium">
+          <p className={`text-center text-sm mb-3 font-medium ${
+            message.includes("successfully") || message.includes("created") 
+              ? "text-green-600" 
+              : "text-red-600"
+          }`}>
             {message}
           </p>
         )}
@@ -136,11 +157,17 @@ export default function BookingModal({ propertyId, nextAvailableDate, onClose, p
               type="number"
               name="guests"
               min="1"
+              max={maxGuests || undefined}
               value={formData.guests}
               onChange={handleChange}
               className="w-full border rounded-md p-2"
               required
             />
+            {maxGuests && (
+              <p className="text-xs text-gray-500 mt-1">
+                Max guests for this property: {maxGuests}
+              </p>
+            )}
           </div>
 
           {total > 0 && (

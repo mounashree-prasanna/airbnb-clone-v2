@@ -1,7 +1,7 @@
 import { useState } from "react";
-import AuthService from "../services/AuthService";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useDispatch } from "react-redux";
+import { loginUser } from "../store/authSlice";
 
 export default function Login() {
   const [role, setRole] = useState("traveler");
@@ -9,7 +9,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const dispatch = useDispatch();
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,26 +20,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await AuthService.login(role, formData);
-      const userRole = res.data.traveler?.role || res.data.role || role;
+      const result = await dispatch(
+        loginUser({ role, credentials: formData })
+      ).unwrap();
 
-      // ✅ Store JWT token for all future requests
-      localStorage.setItem("token", res.data.token);
-
-      // ✅ Store role and user info
-      localStorage.setItem("role", userRole);
-      localStorage.setItem("user_id", res.data.traveler?.id || "");
-
-      login(userRole);
-
-      if (userRole === "owner") {
+      const nextRole = result.role || role;
+      if (nextRole === "owner") {
         navigate("/owner/dashboard");
       } else {
         navigate("/home");
       }
-    } catch (err) {
-      console.error("Login failed:", err.response?.data || err.message);
-      setError(err.response?.data?.message || "Login failed. Please try again.");
+    } catch (errMessage) {
+      setError(errMessage);
     } finally {
       setLoading(false);
     }

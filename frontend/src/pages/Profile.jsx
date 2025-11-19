@@ -1,8 +1,11 @@
 import Navbar from "../components/Navbar";
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect, useMemo } from "react";
+import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import { API_ENDPOINTS, API_BASE_URL } from "../utils/constants";
+
+const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+
 
 const Profile = () => {
   const [profile, setProfile] = useState({
@@ -15,23 +18,24 @@ const Profile = () => {
     country: "",
     languages: "",
     gender: "Other",
-    profilePic: null,
+    profile_image: null,
   });
 
   const [message, setMessage] = useState("");
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
   const countries = ["United States", "Canada", "United Kingdom", "India", "Australia"];
   const genders = ["Male", "Female", "Other"];
 
   useEffect(() => {
-    axios
+    axiosInstance
       .get(`${API_ENDPOINTS.TRAVELER.USERS}/profile`, { withCredentials: true })
       .then((res) => {
         if (res.data) {
           setProfile({
             ...res.data,
-            profilePic: res.data.profile_image || null
+            profile_image: res.data.profile_image || null,
           });
         }
       })
@@ -40,10 +44,23 @@ const Profile = () => {
       });
   }, []);
 
-  const handleChange = (e) => {
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+
+  const handleChange = async (e) => {
     const { name, value, files } = e.target;
-    if (name === "profilePic" && files && files[0]) {
-      setProfile({ ...profile, profilePic: files[0] });
+    if (name === "profile_image" && files && files[0]) {
+      try {
+        const encoded = await toBase64(files[0]);
+        setProfile({ ...profile, profile_image: encoded });
+      } catch (error) {
+        console.error("Failed to read file", error);
+      }
     } else {
       setProfile({ ...profile, [name]: value });
     }
@@ -51,33 +68,80 @@ const Profile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const formData = new FormData();
-      Object.keys(profile).forEach(key => {
-        if (key === 'profilePic' && profile[key] instanceof File) {
-          formData.append('profile_image', profile[key]);
-        } else if (profile[key] !== null) {
-          formData.append(key, profile[key]);
-        }
-      });
 
-      await axios.put(
+    const newErrors = {};
+    if (profile.phone && !phoneRegex.test(profile.phone)) {
+      newErrors.phone = "Phone must be in NNN-NNN-NNNN format (e.g., 669-132-4567).";
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length) return;
+
+    try {
+      // Send as JSON like owner profile (base64 encoded image)
+      const res = await axiosInstance.put(
         `${API_ENDPOINTS.TRAVELER.USERS}/profile`,
-        formData,
-        { 
+        profile,
+        {
           withCredentials: true,
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { "Content-Type": "application/json" },
         }
       );
-  
+
+      // Update profile state with response data
+      if (res.data) {
+        setProfile({
+          ...res.data,
+          profile_image: res.data.profile_image || null,
+        });
+      }
+
       setMessage("Profile updated successfully!");
-  
+
       setTimeout(() => navigate("/home"), 1000);
     } catch (err) {
       console.error("Profile update failed:", err);
       setMessage("Error updating profile.");
     }
   };
+
+  const travelerPathname = useMemo(() => {
+    try {
+      return new URL(API_ENDPOINTS.TRAVELER.USERS).pathname.replace(/\/$/, "");
+    } catch {
+      return "/traveler";
+    }
+  }, []);
+
+  const resolveProfileImageSrc = () => {
+    if (!profile.profile_image) return null;
+    if (typeof profile.profile_image !== "string") return null;
+
+    // If already a base64 data URL, return as-is (like owner profile)
+    if (profile.profile_image.startsWith("data:")) {
+      return profile.profile_image;
+    }
+
+    // If already an absolute URL, use it as-is
+    if (profile.profile_image.startsWith("http")) {
+      return profile.profile_image;
+    }
+
+    // For relative paths (legacy support for file uploads)
+    const normalized = profile.profile_image.startsWith("/")
+      ? profile.profile_image
+      : `/${profile.profile_image}`;
+
+    const baseHost = API_BASE_URL.replace(/\/$/, "");
+
+    // Stored as \"/uploads/<file>\" in Mongo → request via /traveler/uploads/...
+    if (normalized.startsWith("/uploads")) {
+      return `${baseHost}/traveler${normalized}`;
+    }
+
+    // Fallback for any other relative paths
+    return `${baseHost}${normalized}`;
+  };
+
 
   return (
     <div>
@@ -90,15 +154,15 @@ const Profile = () => {
           encType="multipart/form-data"
         >
           <div className="flex flex-col items-center">
-            {profile.profilePic ? (
+            {profile.profile_image ? (
               <img
-                src={
-                  typeof profile.profilePic === "string"
-                    ? `${API_BASE_URL}${profile.profilePic}`
-                    : URL.createObjectURL(profile.profilePic)
-                }
+                src={resolveProfileImageSrc()}
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover mb-2"
+                onError={(e) => {
+                  console.error("Image load error:", e.target.src);
+                  e.target.style.display = "none";
+                }}
               />
             ) : (
               <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-2">
@@ -107,7 +171,7 @@ const Profile = () => {
             )}
             <input
               type="file"
-              name="profilePic"
+              name="profile_image"
               accept="image/*"
               onChange={handleChange}
             />
@@ -137,13 +201,18 @@ const Profile = () => {
 
           <div>
             <label className="block font-medium">Phone</label>
-            <input
-              type="text"
-              name="phone"
-              value={profile.phone}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-            />
+              <input
+                type="text"
+                name="phone"
+                value={profile.phone}
+                onChange={handleChange}
+                placeholder="669-132-4567"
+                className={`w-full border px-3 py-2 rounded ${
+                  errors.phone ? "border-red-500" : ""
+                }`}
+              />
+              {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
+
           </div>
 
           <div>

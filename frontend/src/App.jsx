@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { checkSession } from "./store/authSlice";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -17,28 +19,37 @@ import TravelerHistory from "./pages/TravelerHistory";
 import SearchResults from "./pages/SearchResults";
 
 function AppRoutes() {
-  const { isLoggedIn, role, loading } = useAuth();
+  const dispatch = useDispatch();
+  const { isAuthenticated, role, status } = useSelector((state) => state.auth);
+  console.log("Auth state on load:", { isAuthenticated, role, status });
 
-  if (loading)
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(checkSession());
+    }
+  }, [dispatch, status]);
+
+  if (status === "loading") {
     return (
       <div className="flex justify-center items-center h-screen text-gray-700 text-lg">
         Checking session...
       </div>
     );
+  }
 
   const ProtectedRoute = ({ element }) => {
-    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
     return element;
   };
 
   const TravelerRoute = ({ element }) => {
-    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
     if (role !== "traveler") return <Navigate to="/owner/dashboard" replace />;
     return element;
   };
 
   const OwnerRoute = ({ element }) => {
-    if (!isLoggedIn) return <Navigate to="/login" replace />;
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
     if (role !== "owner") return <Navigate to="/home" replace />;
     return element;
   };
@@ -74,11 +85,9 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
-    </AuthProvider>
+    <Router>
+      <AppRoutes />
+    </Router>
   );
 }
 

@@ -1,15 +1,16 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useDispatch } from "react-redux";
+import { logoutUser } from "../store/authSlice";
 
 export default function Logout() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    const logoutUser = async () => {
+    const logoutAndRedirect = async () => {
       try {
-        await logout();
+        await dispatch(logoutUser()).unwrap();
       } catch (err) {
         console.error("Logout failed:", err);
       } finally {
@@ -17,8 +18,8 @@ export default function Logout() {
       }
     };
 
-    logoutUser();
-  }, [navigate, logout]);
+    logoutAndRedirect();
+  }, [dispatch, navigate]);
 
   return (
     <div className="flex justify-center items-center min-h-screen text-gray-700 text-lg">

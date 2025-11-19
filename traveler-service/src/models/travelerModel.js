@@ -7,11 +7,20 @@ const travelerSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    phone: { type: String },
+    about: { type: String },
+    city: { type: String },
+    state: { type: String },
+    country: { type: String },
+    languages: { type: String },
+    gender: { type: String, default: "Other" },
+    profile_image: { type: String },
     favorites: { type: Array, default: [] },
     role: { type: String, default: "traveler" },
   },
   { timestamps: true }
 );
+
 
 // ✅ Hash password before saving
 travelerSchema.pre("save", async function (next) {

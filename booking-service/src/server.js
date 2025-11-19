@@ -22,6 +22,16 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.options(/.*/, cors({
+  origin: [
+    "http://localhost:5173",
+    "http://airbnb.local",
+    /^http:\/\/.*\.airbnb\.local$/,
+  ],
+  credentials: true,
+}));
+
 app.use(express.json());
 
 // Connect to MongoDB

@@ -2,17 +2,33 @@ import { useState } from "react";
 import AuthService from "../services/AuthService";
 import { useNavigate } from "react-router-dom";
 
+
+const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{9,}$/;
+
 export default function Signup({ redirectTo }) {
   const [role, setRole] = useState("traveler");
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const navigate = useNavigate();
 
   const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  const validate = () => {
+    const errs = {};
+    if (!passwordRegex.test(formData.password)) {
+      errs.password =
+        "Password must be ≥9 characters and include 1 uppercase letter, 1 number, and 1 special character.";
+    }
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!validate()) return;
     try {
       const res = await AuthService.signup(role, formData);
       console.log("Signup success:", res.data);
@@ -70,10 +86,19 @@ export default function Signup({ redirectTo }) {
             placeholder="Password"
             type="password"
             value={formData.password}
-            onChange={onChange}
+            onChange={(e) => {
+              setFormData({ ...formData, password: e.target.value });
+              if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: "" });
+            }}
             required
-            className="w-full p-3 border rounded-lg"
+            className={`w-full p-3 border rounded-lg ${
+              fieldErrors.password ? "border-red-500" : ""
+            }`}
           />
+          {fieldErrors.password && (
+            <p className="text-red-600 text-sm">{fieldErrors.password}</p>
+          )}
+
 
           {error && <p className="text-red-600 text-center">{error}</p>}
 

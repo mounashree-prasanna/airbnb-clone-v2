@@ -115,6 +115,41 @@ exports.getOwnerProfile = async (req, res) => {
   }
 };
 
+// @desc Logout owner
+exports.logoutOwner = (req, res) => {
+  res.json({ message: "Owner logged out (client deletes token)" });
+};
+
+// @desc Check owner session
+exports.checkSession = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.json({ isLoggedIn: false, role: null });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const owner = await Owner.findById(decoded.id).select("-password");
+    
+    if (!owner) {
+      return res.json({ isLoggedIn: false, role: null });
+    }
+
+    res.json({
+      isLoggedIn: true,
+      role: owner.role,
+      user: {
+        id: owner._id,
+        name: owner.name,
+        email: owner.email,
+      },
+    });
+  } catch (err) {
+    res.json({ isLoggedIn: false, role: null });
+  }
+};
+
 // @desc Update owner profile
 exports.updateOwnerProfile = async (req, res) => {
   try {

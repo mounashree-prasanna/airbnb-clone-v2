@@ -38,19 +38,32 @@ class AuthService {
   }
 
   async logout(role) {
+    const resolvedRole = role || localStorage.getItem("role") || "traveler";
     const base =
-      role === "owner"
+      resolvedRole === "owner"
         ? `${API_BASE_URL}/owner/auth`
         : `${API_BASE_URL}/traveler/auth`;
     return axios.post(`${base}/logout`, {}, { withCredentials: true });
   }
 
   async checkSession(role) {
+    const resolvedRole = role || localStorage.getItem("role") || "traveler";
     const base =
-      role === "owner"
+      resolvedRole === "owner"
         ? `${API_BASE_URL}/owner/auth`
         : `${API_BASE_URL}/traveler/auth`;
-    return axios.get(`${base}/check-session`, { withCredentials: true });
+    
+    // Include Authorization header with token for checkSession
+    const token = localStorage.getItem("token");
+    const config = { 
+      withCredentials: true,
+      headers: {}
+    };
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return axios.get(`${base}/check-session`, config);
   }
 }
 

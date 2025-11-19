@@ -1,8 +1,8 @@
 import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { API_ENDPOINTS, API_BASE_URL } from "../utils/constants";
+import axiosInstance from "../utils/axiosInstance";
 
 const OwnerProfile = () => {
   const [profile, setProfile] = useState({
@@ -10,7 +10,7 @@ const OwnerProfile = () => {
     email: "",
     location: "",
     phone: "",
-    profilePic: null,
+    profile_image: "",
   });
 
   const [message, setMessage] = useState("");
@@ -18,7 +18,7 @@ const OwnerProfile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios
+    axiosInstance
       .get(API_ENDPOINTS.OWNER.PROFILE, { withCredentials: true })
       .then((res) => {
         if (res.data) {
@@ -28,9 +28,11 @@ const OwnerProfile = () => {
             email: email || "",
             location: location || "",
             phone: phone || "",
-            profilePic: profile_image || null,
+            profile_image: profile_image || "",
           });
-          if (profile_image) setPreview(profile_image);
+          if (profile_image) {
+            setPreview(resolvePreview(profile_image));
+          }
         }
       })
       .catch((err) => {
@@ -38,11 +40,30 @@ const OwnerProfile = () => {
       });
   }, []);
 
-  const handleChange = (e) => {
+  const resolvePreview = (value) => {
+    if (!value) return null;
+    if (value.startsWith("data:") || value.startsWith("http")) return value;
+    return `${API_BASE_URL}${value.startsWith("/") ? "" : "/"}${value}`;
+  };
+
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+
+  const handleChange = async (e) => {
     const { name, value, files } = e.target;
     if (name === "profilePic" && files && files[0]) {
-      setProfile({ ...profile, profilePic: files[0] });
-      setPreview(URL.createObjectURL(files[0]));
+      try {
+        const encoded = await toBase64(files[0]);
+        setProfile({ ...profile, profile_image: encoded });
+        setPreview(URL.createObjectURL(files[0]));
+      } catch (error) {
+        console.error("Failed to read file", error);
+      }
     } else {
       setProfile({ ...profile, [name]: value });
     }
@@ -52,30 +73,9 @@ const OwnerProfile = () => {
     e.preventDefault();
 
     try {
-      if (profile.profilePic && typeof profile.profilePic !== "string") {
-        const fd = new FormData();
-        fd.append("name", profile.name);
-        fd.append("email", profile.email);
-        fd.append("location", profile.location);
-        fd.append("phone", profile.phone);
-        fd.append("profile_image", profile.profilePic);
-
-        await axios.put(API_ENDPOINTS.OWNER.PROFILE, fd, {
-          withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      } else {
-        await axios.put(
-          API_ENDPOINTS.OWNER.PROFILE,
-          {
-            name: profile.name,
-            email: profile.email,
-            location: profile.location,
-            phone: profile.phone,
-          },
-          { withCredentials: true }
-        );
-      }
+      await axiosInstance.put(API_ENDPOINTS.OWNER.PROFILE, profile, {
+        withCredentials: true,
+      });
 
       setMessage("Profile updated successfully!");
       setTimeout(() => navigate("/owner/dashboard"), 900);
@@ -99,7 +99,13 @@ const OwnerProfile = () => {
           <div className="flex flex-col items-center">
             {preview ? (
               <img
-                src={preview.startsWith('http') ? preview : `${API_BASE_URL}${preview}`}
+                src={preview}
+                alt="Profile"
+                className="w-24 h-24 rounded-full object-cover mb-2"
+              />
+            ) : profile.profile_image ? (
+              <img
+                src={resolvePreview(profile.profile_image)}
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover mb-2"
               />

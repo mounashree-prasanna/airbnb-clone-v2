@@ -1,60 +1,95 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import axios from "axios";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
-import { API_ENDPOINTS } from "../utils/constants";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProperties, searchProperties } from "../store/propertySlice";
+
+const parseDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const matchesDateRange = (property, startDate, endDate) => {
+  if (!startDate && !endDate) return true;
+
+  const availableFrom =
+    property.available_from ||
+    property.availableFrom ||
+    property.next_available_date ||
+    property.availableFromDate;
+
+  const availableTo = property.available_to || property.availableTo;
+
+  const availableStart = parseDate(availableFrom);
+  const availableEnd = parseDate(availableTo);
+
+  if (startDate && availableStart && startDate < availableStart) return false;
+  if (endDate && availableEnd && endDate > availableEnd) return false;
+
+  return true;
+};
+
+const meetsGuestRequirement = (property, guests) => {
+  if (!guests) return true;
+  const guestCapacity =
+    property.guests ||
+    property.maxGuests ||
+    (property.bedrooms ? property.bedrooms * 2 : null);
+  if (!guestCapacity) return false;
+  return guestCapacity >= Number(guests);
+};
 
 export default function SearchResults() {
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const {
+    items,
+    status,
+    error,
+    searchResults,
+    searchStatus,
+    searchError,
+  } = useSelector((state) => state.properties);
 
   const location = useLocation();
-
   const params = new URLSearchParams(location.search);
   const searchLocation = params.get("location") || "";
   const guests = params.get("guests") || "";
-  const datesParam = params.get("dates") || "";
-  
-  const [startDate, endDate] = datesParam ? datesParam.split("|") : ["", ""];
+  const startDateParam = params.get("startDate") || "";
+  const endDateParam = params.get("endDate") || "";
 
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (!searchLocation) {
-          setError("Please enter a location to search.");
-          setLoading(false);
-          return;
-        }
+    if (searchLocation) {
+      dispatch(
+        searchProperties({
+          location: searchLocation,
+        })
+      );
+    } else if (status === "idle") {
+      dispatch(fetchProperties());
+    }
+  }, [dispatch, searchLocation, status]);
 
-        const requestParams = { location: searchLocation, guests };
-        if (startDate && endDate) {
-          requestParams.startDate = startDate;
-          requestParams.endDate = endDate;
-        }
-        
-        const res = await axios.get(API_ENDPOINTS.PROPERTY.SEARCH, {
-          params: requestParams,
-          withCredentials: true,
-        });
+  const baseList = searchLocation ? searchResults : items;
+  const loading = searchLocation
+    ? searchStatus === "loading"
+    : status === "loading";
+  const effectiveError = searchLocation ? searchError : error;
 
-        setProperties(res.data);
-        setError("");
-      } catch (err) {
-        console.error("Search failed:", err);
-        if (err.response?.status === 404) {
-          setError("No properties found for this location.");
-        } else {
-          setError("Server error. Please try again later.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+  const startDateObj = parseDate(startDateParam);
+  const endDateObj = parseDate(endDateParam);
 
-    fetchProperties();
-  }, [searchLocation, guests, startDate, endDate]);
+  const filteredProperties = useMemo(() => {
+    const list = baseList || [];
+    return list.filter(
+      (property) =>
+        matchesDateRange(property, startDateObj, endDateObj) &&
+        meetsGuestRequirement(property, guests)
+    );
+  }, [baseList, startDateObj, endDateObj, guests]);
+
+  const hasDateRange = startDateObj && endDateObj;
 
   return (
     <div>
@@ -66,23 +101,24 @@ export default function SearchResults() {
               ? `Search results for: ${searchLocation}`
               : "All Properties"}
           </h2>
-          {startDate && endDate && (
+          {hasDateRange && (
             <p className="text-gray-600">
-              Available for: {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+              Available for: {startDateObj.toLocaleDateString()} -{" "}
+              {endDateObj.toLocaleDateString()}
             </p>
           )}
         </div>
 
         {loading ? (
           <p className="text-gray-500">Loading...</p>
-        ) : error ? (
-          <p className="text-gray-500 mt-4">{error}</p>
-        ) : properties.length > 0 ? (
+        ) : effectiveError ? (
+          <p className="text-gray-500 mt-4">{effectiveError}</p>
+        ) : filteredProperties.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {properties.map((prop) => (
+            {filteredProperties.map((prop) => (
               <PropertyCard
-                key={prop.id}
-                id={prop.id}
+                key={prop._id || prop.id}
+                id={prop._id || prop.id}
                 title={prop.title}
                 location={prop.location}
                 price={prop.price}
@@ -92,12 +128,17 @@ export default function SearchResults() {
           </div>
         ) : (
           <div className="text-gray-500 mt-4">
-            <p>No available properties found for "{searchLocation}"
-              {startDate && endDate && ` during ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`}.
+            <p>
+              No available properties found
+              {searchLocation && ` for "${searchLocation}"`}
+              {hasDateRange &&
+                ` during ${startDateObj.toLocaleDateString()} - ${endDateObj.toLocaleDateString()}`}
+              .
             </p>
             <p className="mt-2 text-sm">
-              This could be because the properties are either not available in this location
-              {startDate && endDate && ' or are already booked for these dates'}.
+              This could be because the properties are either not available in
+              this location
+              {hasDateRange && " or are already booked for these dates"}.
             </p>
           </div>
         )}

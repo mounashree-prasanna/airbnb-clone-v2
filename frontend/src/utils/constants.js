@@ -32,8 +32,8 @@ export const API_ENDPOINTS = {
   },
   // Owner service routes (via /owner)
   OWNER: {
-    BASE: `${API_BASE_URL}/owner/api/owner`,
-    PROFILE: `${API_BASE_URL}/owner/api/owner/profile`,
+    AUTH: `${API_BASE_URL}/owner/auth`,
+    PROFILE: `${API_BASE_URL}/owner/auth/profile`,
   },
   // Booking service routes (via /booking)
   BOOKING: {

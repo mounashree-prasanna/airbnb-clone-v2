@@ -1,7 +1,8 @@
 import { useState } from "react";
-import AuthService from "../services/AuthService";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useDispatch } from "react-redux";
+import AuthService from "../services/AuthService";
+import { loginUser } from "../store/authSlice";
 
 const COUNTRIES = [
   { code: "US", name: "United States" },
@@ -14,13 +15,46 @@ const COUNTRIES = [
 const LANGUAGES = ["English", "Spanish", "French", "Hindi", "Mandarin"];
 const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 
+// Validation functions
+const validatePassword = (password) => {
+  if (password.length < 8) {
+    return "Password must be at least 8 characters long";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter";
+  }
+  if (!/[0-9]/.test(password)) {
+    return "Password must contain at least one number";
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    return "Password must contain at least one special character";
+  }
+  return null;
+};
+
+const validatePhone = (phone) => {
+  // Phone is optional, but if provided, it must match the format
+  if (!phone || phone.trim() === "") {
+    return null; // Phone is optional
+  }
+  const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+  if (!phoneRegex.test(phone)) {
+    return "Phone must be in NNN-NNN-NNNN format (e.g., 669-132-4567)";
+  }
+  return null;
+};
+
 export default function AuthPage() {
   const [isSignup, setIsSignup] = useState(true);      
   const [role, setRole] = useState("traveler");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   const navigate = useNavigate();
-  const { login } = useAuth();        
+  const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -37,12 +71,42 @@ export default function AuthPage() {
   const onChange = (e) => {
     const { name, value } = e.target;
     setFormData((s) => ({ ...s, [name]: value }));
+    
+    // Clear validation error for this field when user types
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setValidationErrors({});
     setLoading(true);
+
+    // Validate password and phone for signup
+    if (isSignup) {
+      const errors = {};
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) {
+        errors.password = passwordError;
+      }
+      
+      const phoneError = validatePhone(formData.phone);
+      if (phoneError) {
+        errors.phone = phoneError;
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       if (isSignup) {
@@ -74,18 +138,32 @@ export default function AuthPage() {
 
         const res = await AuthService.signup(role, payload);
         console.log("Signup success:", res.data);
-        navigate("/login");
+        
+        // Auto-login after successful signup
+        if (res.data.token) {
+          localStorage.setItem("token", res.data.token);
+          localStorage.setItem("role", res.data.traveler?.role || res.data.owner?.role || role);
+          localStorage.setItem("user_id", res.data.traveler?.id || res.data.owner?.id || res.data.traveler?._id || res.data.owner?._id);
+          
+          // Navigate based on role
+          if (role === "owner") {
+            navigate("/owner/dashboard");
+          } else {
+            navigate("/home");
+          }
+        } else {
+          navigate("/login");
+        }
       } else {
         const payload = {
           email: formData.email,
           password: formData.password,
         };
 
-        const res = await AuthService.login(role, payload);
-        const userRole = res.data.role || role;
-        localStorage.setItem("role", userRole);
-        localStorage.setItem("user_id", res.data.user?.id || "");
-        login(userRole);
+        const result = await dispatch(
+          loginUser({ role, credentials: payload })
+        ).unwrap();
+        const userRole = result.role || role;
 
         if (userRole === "owner") {
           navigate("/owner/dashboard");
@@ -95,8 +173,8 @@ export default function AuthPage() {
       }
     } catch (err) {
       console.error("Auth error:", err.response?.data || err.message);
-      setError(err.response?.data?.message || (isSignup ? "Signup failed. Try again." : "Login failed. Please try again."));
-    } finally {
+      const errorMessage = err.response?.data?.message || err.message || (isSignup ? "Signup failed. Try again." : "Login failed. Please try again.");
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -147,35 +225,56 @@ export default function AuthPage() {
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  name="email"
-                  type="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={onChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  required
-                />
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={onChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  required
-                />
+                <div>
+                  <input
+                    name="email"
+                    type="email"
+                    placeholder="Email"
+                    value={formData.email}
+                    onChange={onChange}
+                    className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                      validationErrors.email ? "border-red-500" : ""
+                    }`}
+                    required
+                  />
+                  {validationErrors.email && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.email}</p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    name="password"
+                    type="password"
+                    placeholder="Password (min 8 chars, 1 uppercase, 1 number, 1 special)"
+                    value={formData.password}
+                    onChange={onChange}
+                    className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                      validationErrors.password ? "border-red-500" : ""
+                    }`}
+                    required
+                  />
+                  {validationErrors.password && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.password}</p>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  name="phone"
-                  type="tel"
-                  placeholder="Phone"
-                  value={formData.phone}
-                  onChange={onChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
+                <div>
+                  <input
+                    name="phone"
+                    type="tel"
+                    placeholder="Phone (669-132-4567)"
+                    value={formData.phone}
+                    onChange={onChange}
+                    className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                      validationErrors.phone ? "border-red-500" : ""
+                    }`}
+                  />
+                  {validationErrors.phone && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.phone}</p>
+                  )}
+                </div>
                 <input
                   name="city"
                   type="text"
