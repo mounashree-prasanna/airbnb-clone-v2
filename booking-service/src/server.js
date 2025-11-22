@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import { errorHandler } from "./middlewares/errorMiddleware.js";
+import { startBookingConsumer } from "./kafka/consumer.js";
+import { connectProducer } from "./kafka/producer.js";
+
 
 dotenv.config();
 const app = express();
@@ -36,6 +39,10 @@ app.use(express.json());
 
 // Connect to MongoDB
 connectDB();
+
+// Start Kafka consumer
+connectProducer();
+startBookingConsumer();
 
 // Health check route
 app.get("/", (req, res) => {

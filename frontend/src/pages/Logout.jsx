@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { logoutUser } from "../store/authSlice";
+import { useAppDispatch } from "../store/hooks";
+import { logoutUser } from "../store/slices/authSlice";
 
 export default function Logout() {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const logoutAndRedirect = async () => {

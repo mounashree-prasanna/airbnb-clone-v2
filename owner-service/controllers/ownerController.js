@@ -2,12 +2,21 @@ const Owner = require("../models/Owner");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
-// Helper: generate token
-const generateToken = (owner) => {
+// Helper: generate access token (short-lived)
+const generateAccessToken = (owner) => {
   return jwt.sign(
     { id: owner._id, email: owner.email, role: owner.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
+    process.env.ACCESS_SECRET || process.env.JWT_SECRET,
+    { expiresIn: "2m" }
+  );
+};
+
+// Helper: generate refresh token (long-lived)
+const generateRefreshToken = (owner) => {
+  return jwt.sign(
+    { id: owner._id, email: owner.email, role: owner.role },
+    process.env.REFRESH_SECRET || process.env.JWT_SECRET,
+    { expiresIn: "7d" }
   );
 };
 
@@ -34,11 +43,18 @@ exports.registerOwner = async (req, res) => {
     const owner = new Owner({ name, email, password, phone, role: "owner" });
     await owner.save();
 
-    const token = generateToken(owner);
+    // Generate both tokens
+    const accessToken = generateAccessToken(owner);
+    const refreshToken = generateRefreshToken(owner);
+
+    // Store refresh token as sessionId in MongoDB
+    owner.sessionId = refreshToken;
+    await owner.save();
 
     res.status(201).json({
       message: "Owner registered successfully",
-      token,
+      accessToken,
+      refreshToken,
       owner: {
         id: owner._id,
         name: owner.name,
@@ -82,11 +98,18 @@ exports.loginOwner = async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    const token = generateToken(owner);
+    // Generate both tokens
+    const accessToken = generateAccessToken(owner);
+    const refreshToken = generateRefreshToken(owner);
+
+    // Store refresh token as sessionId in MongoDB
+    owner.sessionId = refreshToken;
+    await owner.save();
 
     res.json({
       message: "Owner login successful",
-      token,
+      accessToken,
+      refreshToken,
       owner: {
         id: owner._id,
         name: owner.name,
@@ -116,37 +139,221 @@ exports.getOwnerProfile = async (req, res) => {
 };
 
 // @desc Logout owner
-exports.logoutOwner = (req, res) => {
-  res.json({ message: "Owner logged out (client deletes token)" });
+exports.logoutOwner = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token required for logout" });
+    }
+
+    // Verify and find user by refresh token
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET || process.env.JWT_SECRET);
+      const owner = await Owner.findById(decoded.id);
+      
+      if (owner && owner.sessionId === refreshToken) {
+        // Clear sessionId (refresh token) from MongoDB
+        owner.sessionId = null;
+        await owner.save();
+        return res.json({ message: "Owner logged out successfully" });
+      } else if (owner) {
+        // SessionId doesn't match, but clear it anyway
+        owner.sessionId = null;
+        await owner.save();
+        return res.json({ message: "Owner logged out successfully" });
+      }
+    } catch (err) {
+      // Invalid or expired refresh token, but still return success
+      // Try to find user by decoding without verification
+      try {
+        const decoded = jwt.decode(refreshToken);
+        if (decoded && decoded.id) {
+          const owner = await Owner.findById(decoded.id);
+          if (owner) {
+            owner.sessionId = null;
+            await owner.save();
+          }
+        }
+      } catch (decodeErr) {
+        // Ignore decode errors
+      }
+    }
+
+    res.json({ message: "Owner logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ message: "Server error during logout" });
+  }
+};
+
+// @desc Refresh access token
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token required" });
+    }
+
+    // Verify refresh token
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET || process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid or expired refresh token" });
+    }
+
+    // Find owner and verify sessionId matches
+    const owner = await Owner.findById(decoded.id);
+    if (!owner) {
+      return res.status(404).json({ message: "Owner not found" });
+    }
+
+    // Verify the refresh token matches the stored sessionId
+    if (owner.sessionId !== refreshToken) {
+      // Invalid session - clear it and force re-login
+      owner.sessionId = null;
+      await owner.save();
+      return res.status(401).json({ message: "Invalid session. Please login again." });
+    }
+
+    // Generate new access token
+    const newAccessToken = generateAccessToken(owner);
+
+    res.json({
+      message: "Token refreshed successfully",
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // @desc Check owner session
 exports.checkSession = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.json({ isLoggedIn: false, role: null });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const owner = await Owner.findById(decoded.id).select("-password");
+    const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
     
-    if (!owner) {
+    // If no token provided, check if refreshToken is in body
+    if (!token) {
+      const { refreshToken } = req.body;
+      if (refreshToken) {
+        // Try to use refresh token to get user info
+        try {
+          const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET || process.env.JWT_SECRET);
+          const owner = await Owner.findById(decoded.id).select("-password");
+          
+          if (!owner || owner.sessionId !== refreshToken) {
+            return res.json({ isLoggedIn: false, role: null });
+          }
+
+          // Generate new access token
+          const newAccessToken = generateAccessToken(owner);
+
+          return res.json({
+            isLoggedIn: true,
+            role: owner.role,
+            accessToken: newAccessToken,
+            user: {
+              id: owner._id,
+              name: owner.name,
+              email: owner.email,
+            },
+          });
+        } catch (refreshErr) {
+          return res.json({ isLoggedIn: false, role: null });
+        }
+      }
       return res.json({ isLoggedIn: false, role: null });
     }
 
-    res.json({
-      isLoggedIn: true,
-      role: owner.role,
-      user: {
-        id: owner._id,
-        name: owner.name,
-        email: owner.email,
-      },
-    });
+    // Try to verify access token
+    try {
+      const decoded = jwt.verify(token, process.env.ACCESS_SECRET || process.env.JWT_SECRET);
+      const owner = await Owner.findById(decoded.id).select("-password");
+      if (!owner) return res.json({ isLoggedIn: false, role: null });
+
+      return res.json({
+        isLoggedIn: true,
+        role: owner.role,
+        user: {
+          id: owner._id,
+          name: owner.name,
+          email: owner.email,
+        },
+      });
+    } catch (err) {
+      // Access token expired, try to use refresh token from MongoDB
+      const { refreshToken } = req.body;
+      if (refreshToken) {
+        try {
+          const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET || process.env.JWT_SECRET);
+          const owner = await Owner.findById(decoded.id).select("-password");
+          
+          if (!owner || owner.sessionId !== refreshToken) {
+            return res.json({ isLoggedIn: false, role: null });
+          }
+
+          // Generate new access token
+          const newAccessToken = generateAccessToken(owner);
+
+          return res.json({
+            isLoggedIn: true,
+            role: owner.role,
+            accessToken: newAccessToken,
+            user: {
+              id: owner._id,
+              name: owner.name,
+              email: owner.email,
+            },
+          });
+        } catch (refreshErr) {
+          return res.json({ isLoggedIn: false, role: null });
+        }
+      }
+
+      // No refresh token provided, check MongoDB for stored sessionId
+      try {
+        // Decode without verification to get user ID
+        const decoded = jwt.decode(token);
+        if (decoded && decoded.id) {
+          const owner = await Owner.findById(decoded.id).select("-password");
+          if (owner && owner.sessionId) {
+            // Verify the stored refresh token
+            try {
+              const refreshDecoded = jwt.verify(owner.sessionId, process.env.REFRESH_SECRET || process.env.JWT_SECRET);
+              // Generate new access token
+              const newAccessToken = generateAccessToken(owner);
+
+              return res.json({
+                isLoggedIn: true,
+                role: owner.role,
+                accessToken: newAccessToken,
+                user: {
+                  id: owner._id,
+                  name: owner.name,
+                  email: owner.email,
+                },
+              });
+            } catch (refreshVerifyErr) {
+              // Refresh token expired, clear it
+              owner.sessionId = null;
+              await owner.save();
+            }
+          }
+        }
+      } catch (decodeErr) {
+        // Invalid token format
+      }
+
+      return res.json({ isLoggedIn: false, role: null });
+    }
   } catch (err) {
-    res.json({ isLoggedIn: false, role: null });
+    console.error("Check session error:", err);
+    return res.json({ isLoggedIn: false, role: null });
   }
 };
 

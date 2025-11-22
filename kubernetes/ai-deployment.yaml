@@ -25,6 +25,9 @@ spec:
             # ---- Core Settings ----
             - name: PORT
               value: "7005"
+            # ---- CORS Configuration ----
+            - name: CORS_ORIGINS
+              value: "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://airbnb.local,https://airbnb.local"
 
             # ---- MongoDB Atlas ----
             - name: MONGO_URI
@@ -47,9 +50,9 @@ spec:
                   name: ai-secrets
                   key: openweather
 
-            # ---- Ollama Mistral ----
+            # ---- Ollama phi3:mini ----
             - name: OLLAMA_BASE_URL
               value: "http://ollama:11434"
             - name: OLLAMA_MODEL
-              value: "mistral"
+              value: "phi3:mini"
       restartPolicy: Always

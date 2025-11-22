@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: booking-service
+  labels:
+    app: booking-service
+spec:
+  selector:
+    app: booking-service
+  ports:
+    - protocol: TCP
+      port: 7004         # Service port
+      targetPort: 7004   # Matches containerPort in Deployment
+  type: ClusterIP        # Internal-only; exposed via Ingress

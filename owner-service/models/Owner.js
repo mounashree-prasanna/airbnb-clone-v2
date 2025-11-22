@@ -16,6 +16,7 @@ const ownerSchema = new mongoose.Schema({
   gender: { type: String },
   profile_image: { type: String },
   role: { type: String, default: "owner" },
+  sessionId: { type: String, default: null }, // Store refresh token
 }, { timestamps: true });
 
 // hash password before saving

@@ -48,6 +48,13 @@ spec:
                 secretKeyRef:
                   name: jwt-secret
                   key: traveler-secret
+            # --- Kafka wiring ---
+            - name: KAFKA_BROKER
+              value: "kafka:9092"                 # Kafka Service DNS inside cluster
+            - name: KAFKA_CLIENT_ID
+              value: "traveler-service"
+            - name: KAFKA_GROUP_ID
+              value: "traveler-group"
           volumeMounts:
             # ✅ Mount the persistent volume inside the container
             - name: uploads

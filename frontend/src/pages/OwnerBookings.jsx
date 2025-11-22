@@ -1,16 +1,15 @@
 import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import Navbar from "../components/Navbar";
 import {
   fetchOwnerBookings,
   updateOwnerBookingStatus,
-} from "../store/bookingSlice";
+} from "../store/slices/bookingSlice";
 
 export default function OwnerBookings() {
-  const dispatch = useDispatch();
-  const { ownerItems, ownerStatus, ownerError } = useSelector(
-    (state) => state.bookings
-  );
+  const dispatch = useAppDispatch();
+  const bookingState = useAppSelector((state) => state.bookings) || {};
+  const { ownerItems = [], ownerStatus = 'idle', ownerError } = bookingState;
 
   useEffect(() => {
     // Fetch bookings on mount

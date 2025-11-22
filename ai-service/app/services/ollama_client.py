@@ -1,7 +1,7 @@
 import os, json, httpx
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-MODEL_NAME = os.getenv("OLLAMA_MODEL", "phi3:mini")
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "phi3:mini")  # Using phi3:mini model
 
 async def extract_trip_json(prompt: str) -> dict:
     """

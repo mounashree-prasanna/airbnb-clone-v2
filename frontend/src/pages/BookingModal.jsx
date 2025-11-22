@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
-import { createBooking } from "../store/bookingSlice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { createBooking, clearBookingMessage } from "../store/slices/bookingSlice";
 
 
 export default function BookingModal({
@@ -18,7 +18,9 @@ export default function BookingModal({
   });
   const [minDate, setMinDate] = useState("");
   const [total, setTotal] = useState(0);
-  const dispatch = useDispatch();
+  const [message, setMessage] = useState("");
+  const dispatch = useAppDispatch();
+  const { creating, bookingMessage } = useAppSelector((state) => state.bookings || {});
 
   useEffect(() => {
     const minDateValue = nextAvailableDate || (() => {
@@ -77,9 +79,14 @@ export default function BookingModal({
     dispatch(clearBookingMessage());
   }, [dispatch]);
 
+  useEffect(() => {
+    if (bookingMessage) {
+      setMessage(bookingMessage);
+    }
+  }, [bookingMessage]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage("");
 
     try {
@@ -101,8 +108,6 @@ export default function BookingModal({
       }, 1500);
     } catch (errMessage) {
       setMessage(errMessage || "Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -6,6 +6,9 @@ import travelerAuthRoute from "./routes/travelerAuthRoute.js";
 import travelerRoute from "./routes/travelerRoute.js";
 import favouriteRoutes from "./routes/favouriteRoutes.js";
 import { protect } from "./middlewares/authMiddleware.js";
+import { connectProducer } from "./kafka/producer.js";
+// import { startTravelerConsumer } from "./kafka/consumer.js";
+
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -74,6 +77,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // ✅ Connect MongoDB
 connectDB();
+
+connectProducer();
+// startTravelerConsumer();
 
 // ✅ Health check route
 app.get("/", (req, res) => {

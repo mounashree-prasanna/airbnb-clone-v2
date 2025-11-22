@@ -1,5 +1,6 @@
 import Booking from "../models/bookingModel.js";
 import jwt from "jsonwebtoken";
+import { sendStatusUpdate } from "../kafka/producer.js";
 
 /** Traveler: create booking */
 export const createBooking = async (req, res) => {
@@ -160,8 +161,13 @@ export const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body; // ACCEPTED or CANCELLED
+
     const updated = await Booking.findByIdAndUpdate(id, { status }, { new: true });
     if (!updated) return res.status(404).json({ message: "Booking not found" });
+
+    // Publish booking status to Kafka for other services
+    await sendStatusUpdate({ bookingId: id, status });
+
     res.json({ message: "Booking status updated", booking: updated });
   } catch (err) {
     res.status(500).json({ message: err.message });

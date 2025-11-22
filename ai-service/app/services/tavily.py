@@ -7,7 +7,7 @@ async def search_tavily(query: str, max_results: int = 5) -> List[Dict[str, Any]
     if not TAVILY_API_KEY:
         return []
     payload = {"api_key": TAVILY_API_KEY, "query": query, "max_results": max_results}
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         r = await client.post("https://api.tavily.com/search", json=payload)
         r.raise_for_status()
         data = r.json()

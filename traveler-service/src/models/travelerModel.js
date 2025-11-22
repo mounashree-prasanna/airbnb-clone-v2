@@ -17,6 +17,7 @@ const travelerSchema = new mongoose.Schema(
     profile_image: { type: String },
     favorites: { type: Array, default: [] },
     role: { type: String, default: "traveler" },
+    sessionId: { type: String, default: null }, // Store refresh token
   },
   { timestamps: true }
 );

@@ -2,11 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: traveler-service
+  labels:
+    app: traveler-service
 spec:
   selector:
     app: traveler-service
   ports:
     - protocol: TCP
-      port: 7001         # The port exposed by this service
-      targetPort: 7001   # The port inside the container (same as in Dockerfile)
-  type: ClusterIP     # Exposes the service to outside the cluster
+      port: 7001         # Service port (ClusterIP)
+      targetPort: 7001   # Matches containerPort in Deployment
+  type: ClusterIP        # Internal-only; exposed via Ingress

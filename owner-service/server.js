@@ -4,6 +4,8 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const ownerRoutes = require("./routes/ownerRoutes");
 const cors = require("cors");
+const { startOwnerConsumer } = require("./kafka/consumer");
+
 
 dotenv.config();           // Load environment variables
 
@@ -28,6 +30,10 @@ app.use(
 
 // Database
 connectDB();
+
+
+
+startOwnerConsumer();
 
 // Routes
 app.use("/auth", ownerRoutes);

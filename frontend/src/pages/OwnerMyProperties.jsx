@@ -1,16 +1,17 @@
   import { useEffect, useState } from "react";
-  import { useDispatch, useSelector } from "react-redux";
+  import { useAppDispatch, useAppSelector } from "../store/hooks";
   import Navbar from "../components/Navbar";
   import {
     fetchOwnerProperties,
     updateOwnerProperty,
     deleteOwnerProperty,
-  } from "../store/propertySlice";
+  } from "../store/slices/propertySlice";
 
   export default function OwnerMyProperties() {
-    const dispatch = useDispatch();
-    const { ownerItems, ownerStatus, ownerError, ownerMutationStatus } =
-      useSelector((state) => state.properties);
+    const dispatch = useAppDispatch();
+    const propertyState = useAppSelector((state) => state.properties) || {};
+    const { ownerItems = [], ownerStatus = 'idle', ownerError, ownerMutationStatus = 'idle' } =
+      propertyState;
     const [edit, setEdit] = useState(null);
     const [localMsg, setLocalMsg] = useState("");
 

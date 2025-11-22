@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booking-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: booking-service
+  template:
+    metadata:
+      labels:
+        app: booking-service
+    spec:
+      containers:
+        - name: booking-service
+          image: booking-service:latest     # 👈 Make sure this matches your local image name
+          imagePullPolicy: IfNotPresent     # 👈 Use local image if available
+          ports:
+            - containerPort: 7004
+          env:
+            - name: PORT
+              value: "7004"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-uri
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: booking-secret
+            # --- Kafka wiring ---
+            - name: KAFKA_BROKER
+              value: "kafka:9092"           # Kafka Service DNS inside cluster
+            - name: KAFKA_CLIENT_ID
+              value: "booking-service"
+            - name: KAFKA_GROUP_ID
+              value: "booking-group"

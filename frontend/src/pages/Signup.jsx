@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { signupUser, clearError } from "../store/slices/authSlice";
+import { signupUser, clearError, resetAuth } from "../store/slices/authSlice";
 
 
 const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{9,}$/;
@@ -12,9 +12,10 @@ export default function Signup({ redirectTo }) {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const navigate = useNavigate();
-  const { loading, error, role: userRole } = useAppSelector((state) => state.auth);
-
-  const [hasNavigated, setHasNavigated] = useState(false);
+  const dispatch = useAppDispatch();
+  
+  const authState = useAppSelector((state) => state.auth) || {};
+  const { loading = false, error: authError } = authState;
 
   useEffect(() => {
     // Clear any previous errors when component mounts
@@ -22,28 +23,14 @@ export default function Signup({ redirectTo }) {
     
     // If already logged in, redirect immediately (only once on mount)
     const currentRole = localStorage.getItem("role");
-    if (currentRole && !hasNavigated) {
-      setHasNavigated(true);
+    if (currentRole) {
       if (currentRole === "owner") {
         navigate("/owner/dashboard", { replace: true });
       } else if (currentRole === "traveler") {
         navigate(redirectTo || "/home", { replace: true });
       }
     }
-  }, [dispatch, navigate, redirectTo, hasNavigated]);
-
-  useEffect(() => {
-    // Only navigate after a successful signup (when userRole changes from null to a role)
-    // This prevents infinite loops by only navigating when we actually sign up
-    if (userRole && !loading && !hasNavigated) {
-      setHasNavigated(true);
-      if (userRole === "owner") {
-        navigate("/owner/dashboard", { replace: true });
-      } else if (userRole === "traveler") {
-        navigate(redirectTo || "/home", { replace: true });
-      }
-    }
-  }, [userRole, navigate, redirectTo, loading, hasNavigated]);
+  }, [dispatch, navigate, redirectTo]);
 
   const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -61,14 +48,20 @@ export default function Signup({ redirectTo }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    dispatch(clearError());
     if (!validate()) return;
+    
     try {
-      const res = await AuthService.signup(role, formData);
-      console.log("Signup success:", res.data);
-      navigate(redirectTo || "/login"); 
+      await dispatch(signupUser({ role, credentials: formData })).unwrap();
+      
+      // Immediately reset auth state (clears Redux state and localStorage)
+      dispatch(resetAuth());
+      
+      // Redirect to login page
+      navigate("/login", { replace: true });
     } catch (err) {
-      console.error("Signup error:", err.response?.data || err.message);
-      setError(err.response?.data?.message || "Signup failed. Try again.");
+      console.error("Signup error:", err);
+      setError(err || "Signup failed. Try again.");
     }
   };
 
@@ -132,8 +125,9 @@ export default function Signup({ redirectTo }) {
             <p className="text-red-600 text-sm">{fieldErrors.password}</p>
           )}
 
-
-          {error && <p className="text-red-600 text-center">{error}</p>}
+          {(error || authError) && (
+            <p className="text-red-600 text-center">{error || authError}</p>
+          )}
 
           <button
             type="submit"

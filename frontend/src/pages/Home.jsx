@@ -1,34 +1,35 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchProperties } from "../store/propertySlice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { fetchProperties } from "../store/slices/propertySlice";
+import { fetchTravelerBookings } from "../store/slices/bookingSlice";
 import AIChatOnly from "../components/AIChatOnly";  
 
 const Home = () => {
-  const dispatch = useDispatch();
-  const { items: properties, status, error } = useSelector(
-    (state) => state.properties
-  );
+  const dispatch = useAppDispatch();
+  const propertyState = useAppSelector((state) => state.properties) || {};
+  const { items: properties = [], status = 'idle', error } = propertyState;
+  
+  const bookingState = useAppSelector((state) => state.bookings) || {};
+  const { status: bookingStatus } = bookingState;
 
-  // 🔹 Assuming your auth slice stores the logged-in user
-  const { user } = useSelector((state) => state.auth || {}); 
-
-  const [showLoginError, setShowLoginError] = useState(false);
+  // Get auth state - userId and role
+  const authState = useAppSelector((state) => state.auth) || {};
+  const { userId, role, isAuthenticated } = authState;
 
   useEffect(() => {
     if (status === "idle") {
       dispatch(fetchProperties());
     }
   }, [dispatch, status]);
-
-  const handleChatAccess = () => {
-    if (!user || !user._id) {
-      setShowLoginError(true);
-      return null;
+  
+  // Load bookings for travelers
+  useEffect(() => {
+    if (isAuthenticated && role === "traveler" && bookingStatus === "idle") {
+      dispatch(fetchTravelerBookings());
     }
-    return <AIChatOnly travelerId={user._id} />;
-  };
+  }, [dispatch, isAuthenticated, role, bookingStatus]);
 
   return (
     <div>
@@ -45,7 +46,7 @@ const Home = () => {
         ) : properties.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {properties.map((prop) => (
-              <PropertyCard key={prop._id} {...prop} />
+              <PropertyCard key={prop.id || prop._id || `prop-${prop.title}-${prop.location}`} {...prop} />
             ))}
           </div>
         ) : (
@@ -56,21 +57,8 @@ const Home = () => {
       </div>
 
       {/* ✅ Show Chatbot only for logged-in travelers */}
-      {user && user._id && <AIChatOnly travelerId={user._id} />}
-
-      {/* ❌ Error message for not logged-in users */}
-      {showLoginError && (
-        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50">
-          <div className="flex items-center">
-            <span className="font-semibold">Please log in to use the AI Concierge.</span>
-            <button
-              onClick={() => setShowLoginError(false)}
-              className="ml-4 text-red-500 hover:text-red-700 font-bold"
-            >
-              ×
-            </button>
-          </div>
-        </div>
+      {isAuthenticated && role === "traveler" && userId && (
+        <AIChatOnly travelerId={userId} />
       )}
     </div>
   );
