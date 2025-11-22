@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "../store/hooks";
 import AuthService from "../services/AuthService";
-import { loginUser } from "../store/authSlice";
+import { loginUser } from "../store/slices/authSlice";
 
 const COUNTRIES = [
   { code: "US", name: "United States" },
@@ -54,7 +54,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -139,21 +139,14 @@ export default function AuthPage() {
         const res = await AuthService.signup(role, payload);
         console.log("Signup success:", res.data);
         
-        // Auto-login after successful signup
-        if (res.data.token) {
-          localStorage.setItem("token", res.data.token);
-          localStorage.setItem("role", res.data.traveler?.role || res.data.owner?.role || role);
-          localStorage.setItem("user_id", res.data.traveler?.id || res.data.owner?.id || res.data.traveler?._id || res.data.owner?._id);
-          
-          // Navigate based on role
-          if (role === "owner") {
-            navigate("/owner/dashboard");
-          } else {
-            navigate("/home");
-          }
-        } else {
-          navigate("/login");
-        }
+        // Clear any auth tokens and redirect to login page
+        // Don't auto-login - user must log in explicitly
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("user_id");
+        
+        // Always redirect to login after successful signup
+        navigate("/login");
       } else {
         const payload = {
           email: formData.email,

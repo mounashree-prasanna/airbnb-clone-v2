@@ -8,7 +8,8 @@ import BookingModal from "./BookingModal";
 const PropertyDetail = () => {
   const { id } = useParams();
   const dispatch = useAppDispatch();
-  const { currentProperty, detailLoading, detailError } = useAppSelector((state) => state.property);
+  const propertyState = useAppSelector((state) => state.properties) || {};
+  const { currentProperty, detailLoading, detailError } = propertyState;
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
@@ -34,6 +35,15 @@ const PropertyDetail = () => {
       <div>
         <Navbar />
         <p className="text-center text-gray-600 mt-10">Loading property...</p>
+      </div>
+    );
+  }
+
+  if (!property) {
+    return (
+      <div>
+        <Navbar />
+        <p className="text-center text-gray-600 mt-10">Property not found.</p>
       </div>
     );
   }

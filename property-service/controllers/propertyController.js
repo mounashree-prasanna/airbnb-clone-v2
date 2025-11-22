@@ -94,11 +94,20 @@ exports.getMyProperties = async (req, res) => {
 exports.createMyProperty = async (req, res) => {
   try {
     const ownerId = req.user.id;
+    console.log("Creating property with ownerId:", ownerId);
+    console.log("Request body:", req.body);
+    
     const property = await Property.create({ ...req.body, ownerId });
     res.status(201).json({ message: "Property created", property });
   } catch (err) {
     console.error("createMyProperty error:", err);
-    res.status(500).json({ message: "Server error" });
+    // Return more detailed error message
+    const errorMessage = err.message || "Server error";
+    const validationErrors = err.errors ? Object.values(err.errors).map(e => e.message).join(", ") : null;
+    res.status(500).json({ 
+      message: validationErrors || errorMessage,
+      error: err.name === "ValidationError" ? err.errors : undefined
+    });
   }
 };
 

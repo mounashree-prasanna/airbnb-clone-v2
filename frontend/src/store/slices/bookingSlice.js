@@ -3,13 +3,20 @@ import axios from 'axios';
 import { API_ENDPOINTS } from '../../utils/constants';
 import axiosInstance from '../../utils/axiosInstance';
 
+// Helper to get token for requests
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 // Async thunks for booking operations
 export const fetchTravelerBookings = createAsyncThunk(
   'booking/fetchTravelerBookings',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.get(API_ENDPOINTS.BOOKING.TRAVELER, {
+      const res = await axiosInstance.get(API_ENDPOINTS.BOOKING.TRAVELER, {
         withCredentials: true,
+        headers: getAuthHeaders(),
       });
       return res.data || [];
     } catch (error) {
@@ -22,12 +29,13 @@ export const createBooking = createAsyncThunk(
   'booking/createBooking',
   async (bookingData, { rejectWithValue }) => {
     try {
-      const res = await axios.post(API_ENDPOINTS.BOOKING.BASE, bookingData, {
+      const res = await axiosInstance.post(API_ENDPOINTS.BOOKING.BASE, bookingData, {
         withCredentials: true,
+        headers: getAuthHeaders(),
       });
       return res.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to create booking');
+      return rejectWithValue(error.response?.data?.error || error.response?.data?.message || 'Failed to create booking');
     }
   }
 );
@@ -36,10 +44,13 @@ export const cancelBooking = createAsyncThunk(
   'booking/cancelBooking',
   async (bookingId, { rejectWithValue }) => {
     try {
-      await axios.put(
+      await axiosInstance.put(
         `${API_ENDPOINTS.BOOKING.BASE}/${bookingId}/cancel`,
         {},
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: getAuthHeaders(),
+        }
       );
       return bookingId;
     } catch (error) {
@@ -88,16 +99,77 @@ export const removeFromFavourites = createAsyncThunk(
   }
 );
 
+export const fetchOwnerBookings = createAsyncThunk(
+  'booking/fetchOwnerBookings',
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      const ownerId =
+        getState().auth.userId || localStorage.getItem('user_id');
+      if (!ownerId) {
+        return rejectWithValue('Missing owner id. Please login again.');
+      }
+      
+      // Ensure ownerId is a string
+      const normalizedOwnerId = ownerId.toString();
+      console.log('Fetching owner bookings for:', normalizedOwnerId);
+      
+      const { data } = await axiosInstance.get(
+        `${API_ENDPOINTS.BOOKING.OWNER}/${normalizedOwnerId}`,
+        { 
+          withCredentials: true,
+          headers: getAuthHeaders(),
+        }
+      );
+      
+      console.log('Received bookings:', data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching owner bookings:', error);
+      const message =
+        error.response?.data?.message || 'Could not load incoming bookings.';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const updateOwnerBookingStatus = createAsyncThunk(
+  'booking/updateOwnerBookingStatus',
+  async ({ bookingId, status }, { rejectWithValue }) => {
+    try {
+      await axiosInstance.put(
+        `${API_ENDPOINTS.BOOKING.BASE}/${bookingId}/status`,
+        { status },
+        { 
+          withCredentials: true,
+          headers: getAuthHeaders(),
+        }
+      );
+      return { bookingId, status };
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        `Failed to ${status === 'ACCEPTED' ? 'accept' : 'cancel'} booking.`;
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const initialState = {
+  items: [],
   bookings: [],
   favourites: [],
+  status: 'idle',
   loading: false,
   favouritesLoading: false,
   creating: false,
   cancelling: null,
+  cancellingId: null,
   error: null,
   favouritesError: null,
   bookingMessage: null,
+  ownerItems: [],
+  ownerStatus: 'idle',
+  ownerError: null,
 };
 
 const bookingSlice = createSlice({
@@ -123,17 +195,22 @@ const bookingSlice = createSlice({
       // Fetch Traveler Bookings
       .addCase(fetchTravelerBookings.pending, (state) => {
         state.loading = true;
+        state.status = 'loading';
         state.error = null;
       })
       .addCase(fetchTravelerBookings.fulfilled, (state, action) => {
         state.loading = false;
-        state.bookings = action.payload;
+        state.status = 'succeeded';
+        state.bookings = action.payload || [];
+        state.items = action.payload || [];
         state.error = null;
       })
       .addCase(fetchTravelerBookings.rejected, (state, action) => {
         state.loading = false;
+        state.status = 'failed';
         state.error = action.payload;
         state.bookings = [];
+        state.items = [];
       })
       // Create Booking
       .addCase(createBooking.pending, (state) => {
@@ -155,12 +232,19 @@ const bookingSlice = createSlice({
       // Cancel Booking
       .addCase(cancelBooking.pending, (state, action) => {
         state.cancelling = action.meta.arg;
+        state.cancellingId = action.meta.arg;
         state.error = null;
       })
       .addCase(cancelBooking.fulfilled, (state, action) => {
         state.cancelling = null;
+        state.cancellingId = null;
         state.bookings = state.bookings.map((booking) =>
-          booking.id === action.payload
+          booking.id === action.payload || booking._id === action.payload
+            ? { ...booking, status: 'CANCELLED' }
+            : booking
+        );
+        state.items = state.items.map((booking) =>
+          booking.id === action.payload || booking._id === action.payload
             ? { ...booking, status: 'CANCELLED' }
             : booking
         );
@@ -168,6 +252,7 @@ const bookingSlice = createSlice({
       })
       .addCase(cancelBooking.rejected, (state, action) => {
         state.cancelling = null;
+        state.cancellingId = null;
         state.error = action.payload;
       })
       // Fetch Favourites
@@ -202,6 +287,32 @@ const bookingSlice = createSlice({
       })
       .addCase(removeFromFavourites.rejected, (state, action) => {
         state.favouritesError = action.payload;
+      })
+      // Fetch Owner Bookings
+      .addCase(fetchOwnerBookings.pending, (state) => {
+        state.ownerStatus = 'loading';
+        state.ownerError = null;
+      })
+      .addCase(fetchOwnerBookings.fulfilled, (state, action) => {
+        state.ownerStatus = 'succeeded';
+        state.ownerItems = Array.isArray(action.payload) ? action.payload : [];
+        state.ownerError = null;
+      })
+      .addCase(fetchOwnerBookings.rejected, (state, action) => {
+        state.ownerStatus = 'failed';
+        state.ownerError = action.payload;
+      })
+      // Update Owner Booking Status
+      .addCase(updateOwnerBookingStatus.fulfilled, (state, action) => {
+        const { bookingId, status } = action.payload;
+        state.ownerItems = state.ownerItems.map((booking) =>
+          booking._id === bookingId || booking.booking_id === bookingId
+            ? { ...booking, status }
+            : booking
+        );
+      })
+      .addCase(updateOwnerBookingStatus.rejected, (state, action) => {
+        state.ownerError = action.payload;
       });
   },
 });

@@ -35,10 +35,32 @@ def packing_list(weather_info, preferences: TravelerPreferences) -> List[Packing
     return items
 
 async def build_itinerary(location: str, dates: str, party_type: str, preferences: TravelerPreferences) -> ConciergeResponse:
-    weather = get_weather_info(location, dates)
-    activities = await get_activities(location, party_type, preferences)
-    restaurants = await get_restaurants(location, preferences)
-    events = await get_local_events(location, dates)
+    # Run weather and Tavily searches in parallel to speed up
+    import asyncio
+    weather = get_weather_info(location, dates)  # This is synchronous but fast
+    activities_task = get_activities(location, party_type, preferences)
+    restaurants_task = get_restaurants(location, preferences)
+    events_task = get_local_events(location, dates)
+    
+    # Wait for all async tasks in parallel
+    activities, restaurants, events = await asyncio.gather(
+        activities_task,
+        restaurants_task,
+        events_task,
+        return_exceptions=True
+    )
+    
+    # Handle exceptions gracefully
+    if isinstance(activities, Exception):
+        print(f"⚠️ Error fetching activities: {activities}")
+        activities = []
+    if isinstance(restaurants, Exception):
+        print(f"⚠️ Error fetching restaurants: {restaurants}")
+        restaurants = []
+    if isinstance(events, Exception):
+        print(f"⚠️ Error fetching events: {events}")
+        events = []
+    
     pack = packing_list(weather, preferences)
 
     # Parse dates - handle "YYYY-MM-DD to YYYY-MM-DD" format
@@ -49,14 +71,26 @@ async def build_itinerary(location: str, dates: str, party_type: str, preference
         elif len(dates) == 1:
             dates = dates[0]
     
+    if not dates:
+        raise ValueError("Dates cannot be empty")
+    
     if " to " in dates:
-        start_date, end_date = dates.split(" to ")
+        parts = dates.split(" to ")
+        if len(parts) != 2:
+            raise ValueError(f"Invalid dates format: {dates}. Expected 'YYYY-MM-DD to YYYY-MM-DD'")
+        start_date = parts[0].strip()
+        end_date = parts[1].strip()
     else:
         # If no " to " separator, assume single date or use same date for start/end
         start_date = dates.strip()
         end_date = dates.strip()
     
-    current, end = datetime.strptime(start_date.strip(), "%Y-%m-%d"), datetime.strptime(end_date.strip(), "%Y-%m-%d")
+    # Validate and parse dates
+    try:
+        current = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError as e:
+        raise ValueError(f"Invalid date format. Expected YYYY-MM-DD, got start: {start_date}, end: {end_date}. Error: {e}")
 
     day_plans: List[DayPlan] = []
     i = 0

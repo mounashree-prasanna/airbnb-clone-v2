@@ -43,7 +43,8 @@ class AuthService {
       resolvedRole === "owner"
         ? `${API_BASE_URL}/owner/auth`
         : `${API_BASE_URL}/traveler/auth`;
-    return axios.post(`${base}/logout`, {}, { withCredentials: true });
+    const refreshToken = localStorage.getItem("refreshToken");
+    return axios.post(`${base}/logout`, { refreshToken }, { withCredentials: true });
   }
 
   async checkSession(role) {
@@ -53,8 +54,9 @@ class AuthService {
         ? `${API_BASE_URL}/owner/auth`
         : `${API_BASE_URL}/traveler/auth`;
     
-    // Include Authorization header with token for checkSession
+    // Include Authorization header with token and refreshToken in body
     const token = localStorage.getItem("token");
+    const refreshToken = localStorage.getItem("refreshToken");
     const config = { 
       withCredentials: true,
       headers: {}
@@ -63,7 +65,26 @@ class AuthService {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    // Use POST to send refreshToken in body, fallback to GET for backward compatibility
+    if (refreshToken) {
+      return axios.post(`${base}/check-session`, { refreshToken }, config);
+    }
     return axios.get(`${base}/check-session`, config);
+  }
+
+  async refreshToken(role) {
+    const resolvedRole = role || localStorage.getItem("role") || "traveler";
+    const base =
+      resolvedRole === "owner"
+        ? `${API_BASE_URL}/owner/auth`
+        : `${API_BASE_URL}/traveler/auth`;
+    const refreshToken = localStorage.getItem("refreshToken");
+    
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+    
+    return axios.post(`${base}/refresh`, { refreshToken }, { withCredentials: true });
   }
 }
 

@@ -1,17 +1,18 @@
 import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import Navbar from "../components/Navbar";
 import {
   addOwnerProperty,
-} from "../store/propertySlice";
+} from "../store/slices/propertySlice";
 
 export default function OwnerAddProperty() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const propertyState = useAppSelector((state) => state.properties) || {};
   const {
-    ownerMutationStatus,
+    ownerMutationStatus = 'idle',
     ownerMutationError,
-    ownerMutationMessage,
-  } = useSelector((state) => state.properties);
+    ownerMutationMessage = '',
+  } = propertyState;
 
   const [form, setForm] = useState({
     title: "",

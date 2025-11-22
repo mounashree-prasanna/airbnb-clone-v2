@@ -15,7 +15,7 @@ export const protect = (allowedRoles = []) => {
       }
 
       const token = authHeader.split(" ")[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.ACCESS_SECRET || process.env.JWT_SECRET);
 
       // Fetch user info from DB (Traveler for this service)
       const traveler = await Traveler.findById(decoded.id).select("-password");

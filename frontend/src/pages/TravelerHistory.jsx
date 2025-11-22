@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import Navbar from "../components/Navbar";
 import {
   fetchTravelerBookings,
   cancelBooking,
-} from "../store/bookingSlice";
+} from "../store/slices/bookingSlice";
 import axios from "axios";
 import { API_ENDPOINTS } from "../utils/constants";
 
 const TravelerHistory = () => {
-  const dispatch = useDispatch();
-  const { items: bookings, status, error, cancellingId } = useSelector(
-    (state) => state.bookings
-  );
+  const dispatch = useAppDispatch();
+  const bookingState = useAppSelector((state) => state.bookings) || {};
+  const { items: bookings = [], status = 'idle', error, cancellingId } = bookingState;
   const [displayBookings, setDisplayBookings] = useState([]);
 
   const handleCancel = async (bookingId) => {
@@ -52,14 +51,18 @@ const TravelerHistory = () => {
                 propertyId: booking.propertyId,
                 title: data.title,
                 location: data.location,
-                photo_url: data.photo_url,
+                photo_url: data.photo_url || data.photoUrl || data.photoURL,
               };
             } catch (err) {
-              console.warn(
-                "Failed to fetch property details for booking",
-                booking.propertyId,
-                err.message
-              );
+              // Only log if it's not a 404 (property might have been deleted)
+              if (err.response?.status !== 404) {
+                console.warn(
+                  "Failed to fetch property details for booking",
+                  booking.propertyId,
+                  err.message
+                );
+              }
+              // Return null to skip enrichment for this booking
               return null;
             }
           })

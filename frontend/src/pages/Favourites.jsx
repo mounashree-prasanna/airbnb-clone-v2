@@ -1,13 +1,13 @@
 import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
-import { API_ENDPOINTS } from "../utils/constants";
-import axiosInstance from "../utils/axiosInstance";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { fetchFavourites } from "../store/slices/bookingSlice";
 
 const Favourites = () => {
   const dispatch = useAppDispatch();
-  const { favourites, favouritesLoading } = useAppSelector((state) => state.booking);
+  const bookingState = useAppSelector((state) => state.bookings) || {};
+  const { favourites = [], favouritesLoading = false } = bookingState;
 
   useEffect(() => {
     dispatch(fetchFavourites());

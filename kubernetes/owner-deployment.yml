@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: owner-deployment
+  labels:
+    app: owner-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: owner-service
+  template:
+    metadata:
+      labels:
+        app: owner-service
+    spec:
+      containers:
+        - name: owner-service
+          image: owner-service:latest          # or your Docker Hub image e.g. yourname/owner-service:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7003
+          env:
+            # Load MongoDB URI from Secret
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-uri
+            # Load JWT Secret from jwt-secret
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: owner-secret
+            # Static non-secret environment variable
+            - name: PORT
+              value: "7003"
+            # --- Kafka wiring ---
+            - name: KAFKA_BROKER
+              value: "kafka:9092"               # Kafka Service DNS inside cluster
+            - name: KAFKA_CLIENT_ID
+              value: "owner-service"
+            - name: KAFKA_GROUP_ID
+              value: "owner-group"
+      restartPolicy: Always

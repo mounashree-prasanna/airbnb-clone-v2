@@ -8,11 +8,14 @@ exports.protect = (req, res, next) => {
 
   const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.ACCESS_SECRET || process.env.JWT_SECRET);
     req.user = decoded; // add user info to request
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expired, please refresh" });
+    }
     res.status(401).json({ message: "Invalid token" });
   }
 };

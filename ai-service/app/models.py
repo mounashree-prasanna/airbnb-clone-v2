@@ -58,6 +58,7 @@ class ConciergeResponse(BaseModel):
 class ChatMessageIn(BaseModel):
     traveler_id: str
     message: str
+    booking_context: Optional[Dict[str, Any]] = None  # Optional booking data from frontend
 
 class ChatMessageOut(BaseModel):
     reply: str

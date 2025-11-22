@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { loginUser } from "../store/authSlice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { loginUser } from "../store/slices/authSlice";
 
 export default function Login() {
   const [role, setRole] = useState("traveler");
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -30,7 +31,7 @@ export default function Login() {
         navigate("/home");
       }
     } catch (errMessage) {
-      setError(errMessage);
+      setError(errMessage || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }

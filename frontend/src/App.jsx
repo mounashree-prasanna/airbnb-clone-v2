@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { checkSession } from "./store/authSlice";
+import { useAppDispatch, useAppSelector } from "./store/hooks";
+import { checkSession } from "./store/slices/authSlice";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -19,13 +19,14 @@ import TravelerHistory from "./pages/TravelerHistory";
 import SearchResults from "./pages/SearchResults";
 
 function AppRoutes() {
-  const dispatch = useDispatch();
-  const { isAuthenticated, role, status } = useSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, role, status } = useAppSelector((state) => state.auth);
   console.log("Auth state on load:", { isAuthenticated, role, status });
 
   useEffect(() => {
     if (status === "idle") {
-      dispatch(checkSession());
+      const storedRole = localStorage.getItem("role") || "traveler";
+      dispatch(checkSession(storedRole));
     }
   }, [dispatch, status]);
 

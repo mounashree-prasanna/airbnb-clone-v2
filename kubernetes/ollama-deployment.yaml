@@ -1,0 +1,60 @@
+# ----------------------------------------------------------
+# Persistent Volume Claim for Ollama models
+# ----------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi  # Sufficient for phi3:mini (~2-3GB) with some headroom
+---
+# ----------------------------------------------------------
+# Ollama Deployment
+# ----------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-deployment
+  labels:
+    app: ollama
+spec:
+  replicas: 1  # Ollama is stateful, so use 1 replica
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 11434
+          env:
+            # Set OLLAMA_HOST to allow external access
+            - name: OLLAMA_HOST
+              value: "0.0.0.0:11434"
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "8Gi"  # Adjust based on your cluster resources
+              cpu: "4000m"
+          # Volume for storing models (persistent storage)
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama
+      volumes:
+        - name: ollama-data
+          persistentVolumeClaim:
+            claimName: ollama-models-pvc
+      restartPolicy: Always
+

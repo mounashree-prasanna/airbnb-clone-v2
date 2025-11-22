@@ -2,8 +2,8 @@ import { useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchProperties, searchProperties } from "../store/propertySlice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { fetchProperties, searchProperties } from "../store/slices/propertySlice";
 
 const parseDate = (value) => {
   if (!value) return null;
@@ -42,15 +42,16 @@ const meetsGuestRequirement = (property, guests) => {
 };
 
 export default function SearchResults() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const propertyState = useAppSelector((state) => state.properties) || {};
   const {
-    items,
-    status,
+    items = [],
+    status = 'idle',
     error,
-    searchResults,
-    searchStatus,
+    searchResults = [],
+    searchStatus = 'idle',
     searchError,
-  } = useSelector((state) => state.properties);
+  } = propertyState;
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -109,9 +110,7 @@ export default function SearchResults() {
           )}
         </div>
 
-        {!searchLocation ? (
-          <p className="text-gray-500 mt-4">Please enter a location to search.</p>
-        ) : searchLoading ? (
+        {loading ? (
           <p className="text-gray-500">Loading...</p>
         ) : effectiveError ? (
           <p className="text-gray-500 mt-4">{effectiveError}</p>
