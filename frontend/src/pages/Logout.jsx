@@ -10,7 +10,9 @@ export default function Logout() {
   useEffect(() => {
     const logoutAndRedirect = async () => {
       try {
-        await dispatch(logoutUser()).unwrap();
+        // Get role from localStorage before clearing it
+        const role = localStorage.getItem("role") || "traveler";
+        await dispatch(logoutUser(role)).unwrap();
       } catch (err) {
         console.error("Logout failed:", err);
       } finally {

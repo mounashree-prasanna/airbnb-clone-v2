@@ -28,8 +28,8 @@ app.use(express.json());
 // Connect Database
 connectDB();
 
-// Routes
-app.use("/api/property", propertyRoutes);
+// Routes - mount with /property/api prefix to match ingress routing
+app.use("/property/api/property", propertyRoutes);
 
 // Health check
 app.get("/", (req, res) => {

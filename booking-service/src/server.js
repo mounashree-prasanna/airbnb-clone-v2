@@ -49,8 +49,8 @@ app.get("/", (req, res) => {
   res.send("🚀 Booking Service is running and connected to MongoDB");
 });
 
-// Main routes
-app.use("/booking", bookingRoutes);
+// Main routes - mount with /booking prefix to match ingress routing
+app.use("/booking/booking", bookingRoutes);
 
 // Handle unknown routes
 app.use((req, res, next) => {

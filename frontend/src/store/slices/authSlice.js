@@ -94,8 +94,11 @@ export const checkSession = createAsyncThunk(
 export const logoutUser = createAsyncThunk(
   'auth/logout',
   async (role, { rejectWithValue }) => {
+    // Get role from parameter, localStorage, or default to traveler
+    const resolvedRole = role || localStorage.getItem("role") || "traveler";
+    
     try {
-      await AuthService.logout(role);
+      await AuthService.logout(resolvedRole);
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('role');

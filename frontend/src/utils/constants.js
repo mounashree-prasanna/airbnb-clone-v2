@@ -10,10 +10,11 @@ export const LANGUAGES = ["English", "Spanish", "French", "Hindi", "Mandarin"];
 
 export const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 
-// API Base URL - Uses environment variable or falls back to ingress host
+// API Base URL - Uses environment variable or relative URL for same-origin requests
 // Set VITE_API_BASE_URL in .env file to your ingress external IP/hostname
 // Example: VITE_API_BASE_URL=http://airbnb.local or VITE_API_BASE_URL=http://YOUR_EXTERNAL_IP
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://airbnb.local";
+// If not set, use relative URL (empty string) so API calls go to same origin as frontend
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 // API endpoint helpers for different microservices
 export const API_ENDPOINTS = {
@@ -40,5 +41,6 @@ export const API_ENDPOINTS = {
     BASE: `${API_BASE_URL}/booking/booking`,
     TRAVELER: `${API_BASE_URL}/booking/booking/traveler`,
     OWNER: `${API_BASE_URL}/booking/booking/owner`,
+    STATUS: `${API_BASE_URL}/booking/booking`,
   },
 };

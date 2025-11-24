@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { API_ENDPOINTS, API_BASE_URL } from "../utils/constants";
 import axiosInstance from "../utils/axiosInstance";
 
+const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+
 const OwnerProfile = () => {
   const [profile, setProfile] = useState({
     name: "",
@@ -14,6 +16,7 @@ const OwnerProfile = () => {
   });
 
   const [message, setMessage] = useState("");
+  const [errors, setErrors] = useState({});
   const [preview, setPreview] = useState(null);
   const navigate = useNavigate();
 
@@ -71,6 +74,14 @@ const OwnerProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate phone number
+    const newErrors = {};
+    if (profile.phone && !phoneRegex.test(profile.phone)) {
+      newErrors.phone = "Phone must be in NNN-NNN-NNNN format (e.g., 669-132-4567).";
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length) return;
 
     try {
       await axiosInstance.put(API_ENDPOINTS.OWNER.PROFILE, profile, {
@@ -163,8 +174,12 @@ const OwnerProfile = () => {
               name="phone"
               value={profile.phone}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
+              placeholder="669-132-4567"
+              className={`w-full border px-3 py-2 rounded ${
+                errors.phone ? "border-red-500" : ""
+              }`}
             />
+            {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
           </div>
 
           <button

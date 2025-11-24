@@ -45,8 +45,8 @@ export const cancelBooking = createAsyncThunk(
   async (bookingId, { rejectWithValue }) => {
     try {
       await axiosInstance.put(
-        `${API_ENDPOINTS.BOOKING.BASE}/${bookingId}/cancel`,
-        {},
+        `${API_ENDPOINTS.BOOKING.BASE}/${bookingId}/status`,
+        { status: 'CANCELLED' },
         { 
           withCredentials: true,
           headers: getAuthHeaders(),
@@ -54,7 +54,7 @@ export const cancelBooking = createAsyncThunk(
       );
       return bookingId;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to cancel booking');
+      return rejectWithValue(error.response?.data?.error || error.response?.data?.message || 'Failed to cancel booking');
     }
   }
 );

@@ -8,6 +8,8 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: gp2
+  volumeMode: Filesystem
   resources:
     requests:
       storage: 5Gi  # Sufficient for phi3:mini (~2-3GB) with some headroom
@@ -43,12 +45,12 @@ spec:
               value: "0.0.0.0:11434"
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "1000m"
+              memory: "512Mi"  # Further reduced to help with scheduling
+              cpu: "250m"      # Further reduced to help with scheduling
             limits:
-              memory: "8Gi"  # Adjust based on your cluster resources
+              memory: "8Gi"    # Adjust based on your cluster resources
               cpu: "4000m"
-          # Volume for storing models (persistent storage)
+          # Volume for storing models - using PersistentVolumeClaim for persistence
           volumeMounts:
             - name: ollama-data
               mountPath: /root/.ollama

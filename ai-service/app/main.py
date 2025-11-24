@@ -5,7 +5,7 @@ import os
 import httpx
 import re
 from datetime import datetime, timedelta
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any, Optional
 
@@ -25,6 +25,9 @@ print(" MONGO_URI =", os.getenv("MONGO_URI"))
 # -----------------------------
 PORT = int(os.getenv("PORT", "7005"))
 app = FastAPI(title="AI Service (Ollama + Mongo)", version="1.0.0")
+
+# Create router with /ai prefix to match ingress routing
+router = APIRouter(prefix="/ai")
 
 # CORS configuration - allow all origins in development
 # In production, you should restrict this to specific domains
@@ -272,7 +275,7 @@ def normalize_date(date_str: str) -> Optional[str]:
     
     return date_str  # Return as-is if can't parse
 
-@app.post("/chatbot", response_model=ChatMessageOut)
+@router.post("/chatbot", response_model=ChatMessageOut)
 async def chatbot(req: ChatMessageIn):
     try:
         print(f"📥 Received chat request from traveler {req.traveler_id}: {req.message}")
@@ -662,7 +665,7 @@ Return JSON only, no other text. The dates field MUST be in "YYYY-MM-DD to YYYY-
 # -----------------------------
 # Chat History Endpoint
 # -----------------------------
-@app.get("/chatbot/history/{traveler_id}")
+@router.get("/chatbot/history/{traveler_id}")
 async def history(traveler_id: str):
     msgs = await get_traveler_conversation(traveler_id)
     return {"messages": msgs}
@@ -670,7 +673,7 @@ async def history(traveler_id: str):
 # -----------------------------
 # Clear Chat History Endpoint
 # -----------------------------
-@app.delete("/chatbot/history/{traveler_id}")
+@router.delete("/chatbot/history/{traveler_id}")
 async def clear_history(traveler_id: str):
     await clear_traveler_conversation(traveler_id)
     return {"message": "Chat history cleared"}
@@ -679,6 +682,9 @@ async def clear_history(traveler_id: str):
 # -----------------------------
 # Health Check Endpoint
 # -----------------------------
-@app.get("/health")
+@router.get("/health")
 async def health():
     return {"status": "ok"}
+
+# Include the router in the app
+app.include_router(router)

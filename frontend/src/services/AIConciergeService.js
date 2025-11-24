@@ -11,10 +11,10 @@ const getAIBaseURL = () => {
     return envUrl;
   }
   
-  // Default to Kubernetes ingress URL (works for both local frontend and deployed frontend)
-  // If you're running frontend locally but services in K8s, this will work
-  const k8sUrl = 'http://airbnb.local/ai';
-  console.log('🔧 Using Kubernetes AI service URL:', k8sUrl);
+  // Default to relative URL (works for both local frontend and deployed frontend)
+  // This ensures API calls use the same origin as the frontend (no CORS issues)
+  const k8sUrl = '/ai';
+  console.log('🔧 Using relative AI service URL:', k8sUrl);
   return k8sUrl;
 };
 

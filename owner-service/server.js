@@ -35,8 +35,8 @@ connectDB();
 
 startOwnerConsumer();
 
-// Routes
-app.use("/auth", ownerRoutes);
+// Routes - mount with /owner prefix to match ingress routing
+app.use("/owner/auth", ownerRoutes);
 
 // Health check (for Docker/Kubernetes readiness)
 app.get("/health", (req, res) => {

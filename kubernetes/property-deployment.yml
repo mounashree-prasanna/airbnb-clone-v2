@@ -16,8 +16,9 @@ spec:
     spec:
       containers:
         - name: property-service
-          image: property-service:latest        # or your Docker Hub image
-          imagePullPolicy: IfNotPresent
+          # image: property-service:latest        # or your Docker Hub image
+          image: 723609007800.dkr.ecr.us-west-2.amazonaws.com/airbnb-images-2025:property
+          imagePullPolicy: Always
           ports:
             - containerPort: 7002
           env:
