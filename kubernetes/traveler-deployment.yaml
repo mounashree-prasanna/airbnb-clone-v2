@@ -7,7 +7,9 @@ metadata:
   name: traveler-uploads-pvc
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
+  storageClassName: gp2
+  volumeMode: Filesystem
   resources:
     requests:
       storage: 1Gi
@@ -31,8 +33,9 @@ spec:
     spec:
       containers:
         - name: traveler-service
-          image: traveler-service:latest          # Must match your Docker image tag
-          imagePullPolicy: IfNotPresent           # Use local image if available
+          # image: traveler-service:latest          # Must match your Docker image tag
+          image: 723609007800.dkr.ecr.us-west-2.amazonaws.com/airbnb-images-2025:traveler
+          imagePullPolicy: Always                 # Always pull latest image
           ports:
             - containerPort: 7001
           env:
@@ -56,11 +59,11 @@ spec:
             - name: KAFKA_GROUP_ID
               value: "traveler-group"
           volumeMounts:
-            # ✅ Mount the persistent volume inside the container
+            # ✅ Mount the uploads directory inside the container
             - name: uploads
               mountPath: /app/uploads
       volumes:
-        # ✅ Volume linked to the PVC defined above
+        # ✅ Use emptyDir for now - data will be lost on pod restart but allows pods to start
+        # TODO: Switch back to PVC once volume provisioning is fixed
         - name: uploads
-          persistentVolumeClaim:
-            claimName: traveler-uploads-pvc
+          emptyDir: {}

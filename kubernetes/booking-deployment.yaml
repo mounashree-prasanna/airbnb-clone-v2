@@ -14,8 +14,9 @@ spec:
     spec:
       containers:
         - name: booking-service
-          image: booking-service:latest     # 👈 Make sure this matches your local image name
-          imagePullPolicy: IfNotPresent     # 👈 Use local image if available
+          # image: booking-service:latest     # 👈 Make sure this matches your local image name
+          image: 723609007800.dkr.ecr.us-west-2.amazonaws.com/airbnb-images-2025:booking
+          imagePullPolicy: Always           # Always pull latest image
           ports:
             - containerPort: 7004
           env:

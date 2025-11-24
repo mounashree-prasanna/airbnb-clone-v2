@@ -16,8 +16,9 @@ spec:
     spec:
       containers:
         - name: ai-service
-          image: ai-service:latest   # Replace with your actual image (e.g., yourname/ai-service:1.0)
-          imagePullPolicy: IfNotPresent
+          # image: ai-service:latest   # Replace with your actual image (e.g., yourname/ai-service:1.0)
+          image: 723609007800.dkr.ecr.us-west-2.amazonaws.com/airbnb-images-2025:ai
+          imagePullPolicy: Always
           ports:
             - containerPort: 7005
 
