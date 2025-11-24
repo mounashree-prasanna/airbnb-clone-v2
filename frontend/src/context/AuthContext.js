@@ -44,7 +44,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await AuthService.logout();
+      const currentRole = role || localStorage.getItem("role") || "traveler";
+      await AuthService.logout(currentRole);
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {
@@ -52,6 +53,8 @@ export const AuthProvider = ({ children }) => {
       setRole(null);
       localStorage.removeItem("user_id");
       localStorage.removeItem("role");
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
     }
   };
 

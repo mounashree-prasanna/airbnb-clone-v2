@@ -64,7 +64,7 @@ export const getTravelerBookings = async (req, res) => {
       bookings.map(async (booking) => {
         try {
           const propertyRes = await axios.get(
-            `${PROPERTY_SERVICE_URL}/api/property/${booking.propertyId}`
+            `${PROPERTY_SERVICE_URL}/property/api/property/${booking.propertyId}`
           );
           const property = propertyRes.data;
 
@@ -118,7 +118,7 @@ export const getOwnerBookings = async (req, res) => {
       bookings.map(async (booking) => {
         try {
           const propertyRes = await axios.get(
-            `${PROPERTY_SERVICE_URL}/api/property/${booking.propertyId}`
+            `${PROPERTY_SERVICE_URL}/property/api/property/${booking.propertyId}`
           );
           const property = propertyRes.data;
 

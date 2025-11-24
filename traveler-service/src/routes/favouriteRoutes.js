@@ -22,7 +22,7 @@ router.get("/my-favourites", async (req, res) => {
       favourites.map(async (fav) => {
         try {
           const res = await axios.get(
-            `http://property-service:7002/api/property/${fav.property_id}`
+            `http://property-service:7002/property/api/property/${fav.property_id}`
           );
           return res.data;
         } catch (err) {

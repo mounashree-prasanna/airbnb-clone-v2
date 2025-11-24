@@ -86,10 +86,10 @@ app.get("/", (req, res) => {
   res.send("🚀 Traveler Service is running and connected to MongoDB");
 });
 
-// ✅ Traveler routes
-app.use("/auth", travelerAuthRoute);
-app.use("/", travelerRoute);
-app.use("/favourites", protect(["traveler"]), favouriteRoutes);
+// ✅ Traveler routes - mount with /traveler prefix to match ingress routing
+app.use("/traveler/auth", travelerAuthRoute);
+app.use("/traveler", travelerRoute);
+app.use("/traveler/favourites", protect(["traveler"]), favouriteRoutes);
 
 // ✅ Start server
 const PORT = process.env.PORT || 7001;
